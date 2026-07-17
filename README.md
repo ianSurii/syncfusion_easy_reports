@@ -76,5 +76,4 @@ License
 
 See the `LICENSE` file in the repository root.
 
-Maintainers: Please avoid reintroducing legacy code from the `old/` folder
-into active sources — it's kept for historical reference only.
+
