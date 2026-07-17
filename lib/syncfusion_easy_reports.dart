@@ -1,5 +1,3 @@
-library syncfusion_easy_reports;
-
 // Export Configuration Models
 export 'src/models/report_models.dart';
 

@@ -8,6 +8,7 @@ environment:
   flutter: ">=1.17.0"
 
 dependencies:
+  excel_plus: ^2.7.2
   file_picker: ^3.0.4
   flutter:
     sdk: flutter

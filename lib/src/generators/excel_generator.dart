@@ -29,7 +29,8 @@ class ExcelReportGenerator {
       logoBytes = await _resolveLogo(reportData.branding!);
     }
 
-    final ReportBranding? resolvedBranding = reportData.branding != null && logoBytes != null
+    final ReportBranding? resolvedBranding =
+        reportData.branding != null && logoBytes != null
         ? reportData.branding!.copyWithBytes(logoBytes)
         : reportData.branding;
 
@@ -53,7 +54,12 @@ class ExcelReportGenerator {
 
       // 1. Add company branding header
       if (resolvedBranding != null) {
-        currentRow = await _addBrandingHeader(sheet, resolvedBranding, theme, currentRow);
+        currentRow = await _addBrandingHeader(
+          sheet,
+          resolvedBranding,
+          theme,
+          currentRow,
+        );
         currentRow += 2;
       }
 
@@ -62,20 +68,33 @@ class ExcelReportGenerator {
         currentRow = _addTable(sheet, section.table!, theme, currentRow);
 
         // 3. Add summation row
-        if (section.table!.calculateTotals || (section.table!.totalsRow != null)) {
+        if (section.table!.calculateTotals ||
+            (section.table!.totalsRow != null)) {
           currentRow = _addTotals(sheet, section.table!, theme, currentRow);
         }
 
         // 4. Add summary metrics
         if (section.customData != null && section.customData!.isNotEmpty) {
           currentRow += 2;
-          currentRow = _addSummaryMetrics(sheet, section.customData!, theme, currentRow);
+          currentRow = _addSummaryMetrics(
+            sheet,
+            section.customData!,
+            theme,
+            currentRow,
+          );
         }
       }
 
       // 5. Add custom metadata at the very bottom
-      if (reportData.customData != null && reportData.customData!.isNotEmpty && i == sectionsCount - 1) {
-        currentRow = _addGlobalMetadata(sheet, reportData.customData!, theme, currentRow);
+      if (reportData.customData != null &&
+          reportData.customData!.isNotEmpty &&
+          i == sectionsCount - 1) {
+        currentRow = _addGlobalMetadata(
+          sheet,
+          reportData.customData!,
+          theme,
+          currentRow,
+        );
       }
 
       // Formatting column constraints
@@ -99,15 +118,21 @@ class ExcelReportGenerator {
   }
 
   /// Generates the Excel report and automatically triggers file save/download.
-  Future<void> generateAndDownload(ReportData reportData, String filename) async {
+  Future<void> generateAndDownload(
+    ReportData reportData,
+    String filename,
+  ) async {
     final List<int> bytes = await generate(reportData);
-    final String fullFilename = filename.endsWith('.xlsx') ? filename : '$filename.xlsx';
+    final String fullFilename = filename.endsWith('.xlsx')
+        ? filename
+        : '$filename.xlsx';
 
     final downloader = FileDownloader();
     await downloader.downloadFile(
       bytes,
       fullFilename,
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      mimeType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
   }
 
@@ -127,7 +152,9 @@ class ExcelReportGenerator {
         if (response.statusCode == 200) {
           return response.bodyBytes;
         } else {
-          _log.warning('Network logo failed with status: ${response.statusCode}');
+          _log.warning(
+            'Network logo failed with status: ${response.statusCode}',
+          );
         }
       } catch (e) {
         _log.warning('Network logo download exception: $e');
@@ -168,7 +195,11 @@ class ExcelReportGenerator {
     // Draw logo if present
     if (branding.logoBytes != null && branding.logoBytes!.isNotEmpty) {
       try {
-        final Picture picture = sheet.pictures.addStream(currentRow, 1, branding.logoBytes!);
+        final Picture picture = sheet.pictures.addStream(
+          currentRow,
+          1,
+          branding.logoBytes!,
+        );
         picture.height = (branding.logoHeight ?? 100).toInt();
         picture.width = (branding.logoWidth ?? 100).toInt();
         currentRow += 5;
@@ -230,7 +261,12 @@ class ExcelReportGenerator {
   // TABLE BUILDING
   // =========================================================================
 
-  int _addTable(Worksheet sheet, ReportTable table, ReportTheme theme, int startRow) {
+  int _addTable(
+    Worksheet sheet,
+    ReportTable table,
+    ReportTheme theme,
+    int startRow,
+  ) {
     int currentRow = startRow;
 
     // Header cells
@@ -239,7 +275,7 @@ class ExcelReportGenerator {
         final Range headerCell = sheet.getRangeByIndex(currentRow, col + 1);
         headerCell.setText(table.headers[col]);
         headerCell.cellStyle.bold = true;
-        headerCell.cellStyle.fontSize = theme.fontSizeHeader.toInt();
+        headerCell.cellStyle.fontSize = theme.fontSizeHeader.toDouble();
         headerCell.cellStyle.backColor = theme.headerBackgroundColor;
         headerCell.cellStyle.fontColor = theme.headerTextColor;
         headerCell.cellStyle.hAlign = HAlignType.center;
@@ -258,20 +294,29 @@ class ExcelReportGenerator {
       final List<dynamic> row = table.rows[rIndex];
 
       // Check if this is a group header row
-      final bool isGroupHeader = table.groupHeaderIndices != null && table.groupHeaderIndices!.contains(rIndex);
-      final bool isGroupTotal = table.groupTotalIndices != null && table.groupTotalIndices!.contains(rIndex);
+      final bool isGroupHeader =
+          table.groupHeaderIndices != null &&
+          table.groupHeaderIndices!.contains(rIndex);
+      final bool isGroupTotal =
+          table.groupTotalIndices != null &&
+          table.groupTotalIndices!.contains(rIndex);
 
       if (isGroupHeader) {
         // Span columns and format group title
         final Range cell = sheet.getRangeByIndex(currentRow, 1);
         cell.setText(row.isNotEmpty ? row[0]?.toString() ?? '' : '');
         cell.cellStyle.bold = true;
-        cell.cellStyle.fontSize = theme.fontSizeHeader.toInt();
+        cell.cellStyle.fontSize = theme.fontSizeHeader.toDouble();
         cell.cellStyle.backColor = theme.groupHeaderBackgroundColor;
         cell.cellStyle.fontColor = theme.groupHeaderTextColor;
 
         if (table.headers.length > 1) {
-          final Range mergeRange = sheet.getRangeByIndex(currentRow, 1, currentRow, table.headers.length);
+          final Range mergeRange = sheet.getRangeByIndex(
+            currentRow,
+            1,
+            currentRow,
+            table.headers.length,
+          );
           mergeRange.merge();
         }
       } else if (isGroupTotal) {
@@ -298,8 +343,11 @@ class ExcelReportGenerator {
           _setCellValue(cell, value, col, table);
 
           // Apply alignment override if present
-          if (table.columnAlignments != null && table.columnAlignments!.containsKey(col)) {
-            cell.cellStyle.hAlign = _parseAlignment(table.columnAlignments![col]!);
+          if (table.columnAlignments != null &&
+              table.columnAlignments!.containsKey(col)) {
+            cell.cellStyle.hAlign = _parseAlignment(
+              table.columnAlignments![col]!,
+            );
           }
 
           if (table.showBorders) {
@@ -321,14 +369,23 @@ class ExcelReportGenerator {
     return currentRow;
   }
 
-  void _setCellValue(Range cell, dynamic value, int colIndex, ReportTable table) {
+  void _setCellValue(
+    Range cell,
+    dynamic value,
+    int colIndex,
+    ReportTable table,
+  ) {
     // Generate currency format string dynamically
     final String symbol = table.currencySymbol ?? '';
     final String currencyFormat =
         '_("$symbol"* #,##0.00_);_("$symbol"* (#,##0.00);_("$symbol"* "-"??_);_(@_)';
 
-    final bool isCurrency = table.currencyColumnIndices != null && table.currencyColumnIndices!.contains(colIndex);
-    final bool isNumber = table.numberColumnIndices != null && table.numberColumnIndices!.contains(colIndex);
+    final bool isCurrency =
+        table.currencyColumnIndices != null &&
+        table.currencyColumnIndices!.contains(colIndex);
+    final bool isNumber =
+        table.numberColumnIndices != null &&
+        table.numberColumnIndices!.contains(colIndex);
 
     if (value is num) {
       cell.setNumber(value.toDouble());
@@ -353,12 +410,17 @@ class ExcelReportGenerator {
   // TOTALS & STATISTICS
   // =========================================================================
 
-  int _addTotals(Worksheet sheet, ReportTable table, ReportTheme theme, int totalsRowIndex) {
+  int _addTotals(
+    Worksheet sheet,
+    ReportTable table,
+    ReportTheme theme,
+    int totalsRowIndex,
+  ) {
     // Determine label
     final Range totalLabelCell = sheet.getRangeByIndex(totalsRowIndex, 1);
     totalLabelCell.setText('Total');
     totalLabelCell.cellStyle.bold = true;
-    totalLabelCell.cellStyle.fontSize = theme.fontSizeTotals.toInt();
+    totalLabelCell.cellStyle.fontSize = theme.fontSizeTotals.toDouble();
     totalLabelCell.cellStyle.backColor = theme.totalsBackgroundColor;
     totalLabelCell.cellStyle.fontColor = theme.totalsTextColor;
 
@@ -376,7 +438,7 @@ class ExcelReportGenerator {
       sumIndices.addAll(table.currencyColumnIndices!);
     }
 
-    final int uniqueSumIndices = sumIndices.toSet().toList().length;
+    // number of unique numeric columns to sum (not currently used directly)
 
     // Use custom totals row if provided, else set dynamic formulas
     if (table.totalsRow != null && table.totalsRow!.isNotEmpty) {
@@ -412,7 +474,9 @@ class ExcelReportGenerator {
           cell.setFormula('=SUM($letter$startDataRow:$letter$endDataRow)');
 
           final String symbol = table.currencySymbol ?? '';
-          final bool isCurrency = table.currencyColumnIndices != null && table.currencyColumnIndices!.contains(col);
+          final bool isCurrency =
+              table.currencyColumnIndices != null &&
+              table.currencyColumnIndices!.contains(col);
 
           if (isCurrency) {
             cell.numberFormat =
@@ -436,14 +500,19 @@ class ExcelReportGenerator {
     return totalsRowIndex + 1;
   }
 
-  int _addSummaryMetrics(Worksheet sheet, Map<String, String> data, ReportTheme theme, int startRow) {
+  int _addSummaryMetrics(
+    Worksheet sheet,
+    Map<String, String> data,
+    ReportTheme theme,
+    int startRow,
+  ) {
     int currentRow = startRow;
 
     // Header label
     final Range headerCell = sheet.getRangeByIndex(currentRow, 1);
     headerCell.setText('Summary Metrics');
     headerCell.cellStyle.bold = true;
-    headerCell.cellStyle.fontSize = theme.fontSizeHeader.toInt();
+    headerCell.cellStyle.fontSize = theme.fontSizeHeader.toDouble();
     headerCell.cellStyle.backColor = theme.groupHeaderBackgroundColor;
     headerCell.cellStyle.fontColor = theme.groupHeaderTextColor;
     currentRow++;
@@ -463,18 +532,25 @@ class ExcelReportGenerator {
     return currentRow;
   }
 
-  int _addGlobalMetadata(Worksheet sheet, Map<String, String> data, ReportTheme theme, int startRow) {
+  int _addGlobalMetadata(
+    Worksheet sheet,
+    Map<String, String> data,
+    ReportTheme theme,
+    int startRow,
+  ) {
     int currentRow = startRow;
     currentRow += 2;
 
     final Range titleCell = sheet.getRangeByIndex(currentRow, 1);
     titleCell.setText('Document Metadata');
     titleCell.cellStyle.bold = true;
-    titleCell.cellStyle.fontSize = theme.fontSizeHeader.toInt();
+    titleCell.cellStyle.fontSize = theme.fontSizeHeader.toDouble();
     currentRow++;
 
     for (final entry in data.entries) {
-      sheet.getRangeByIndex(currentRow, 1).setText('${entry.key}: ${entry.value}');
+      sheet
+          .getRangeByIndex(currentRow, 1)
+          .setText('${entry.key}: ${entry.value}');
       sheet.getRangeByIndex(currentRow, 1).cellStyle.italic = true;
       currentRow++;
     }
@@ -486,7 +562,11 @@ class ExcelReportGenerator {
   // MULTI-SHEET SUMMARY WORKBOOK GENERATOR
   // =========================================================================
 
-  void _addSummarySheet(Workbook workbook, ReportData reportData, ReportTheme theme) {
+  void _addSummarySheet(
+    Workbook workbook,
+    ReportData reportData,
+    ReportTheme theme,
+  ) {
     // Insert new sheet at index 0
     final Worksheet summarySheet = workbook.worksheets.addWithName('Summary');
 
@@ -511,14 +591,16 @@ class ExcelReportGenerator {
       final Range secLabel = summarySheet.getRangeByIndex(currentRow, 1);
       secLabel.setText(sectionTitle);
       secLabel.cellStyle.bold = true;
-      secLabel.cellStyle.fontSize = theme.fontSizeHeader.toInt();
+      secLabel.cellStyle.fontSize = theme.fontSizeHeader.toDouble();
       secLabel.cellStyle.backColor = theme.groupHeaderBackgroundColor;
       secLabel.cellStyle.fontColor = theme.groupHeaderTextColor;
       currentRow++;
 
       final int rowCount = section.table?.rows.length ?? 0;
       summarySheet.getRangeByIndex(currentRow, 1).setText('Row Count:');
-      summarySheet.getRangeByIndex(currentRow, 2).setNumber(rowCount.toDouble());
+      summarySheet
+          .getRangeByIndex(currentRow, 2)
+          .setNumber(rowCount.toDouble());
       currentRow++;
 
       if (section.customData != null) {
@@ -539,7 +621,11 @@ class ExcelReportGenerator {
   // GENERAL FORMATTING & UTILS
   // =========================================================================
 
-  void _applySheetFormatting(Worksheet sheet, ReportTable? table, ReportSettings settings) {
+  void _applySheetFormatting(
+    Worksheet sheet,
+    ReportTable? table,
+    ReportSettings settings,
+  ) {
     if (table == null) return;
 
     // Freeze panes

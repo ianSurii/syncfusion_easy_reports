@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 /// Section rendering orientation
 enum ReportSectionOrientation {
   /// Renders data as a standard column-based grid table (left-to-right)
@@ -125,36 +123,36 @@ class ReportTheme {
 
   /// Predefined Clean Green Theme
   factory ReportTheme.forestGreen() => ReportTheme(
-        primaryColor: '#2E7D32',
-        accentColor: '#1B5E20',
-        headerBackgroundColor: '#2E7D32',
-        groupHeaderBackgroundColor: '#E8F5E9',
-        groupHeaderTextColor: '#1B5E20',
-        totalsBackgroundColor: '#E8F5E9',
-        borderColor: '#C8E6C9',
-      );
+    primaryColor: '#2E7D32',
+    accentColor: '#1B5E20',
+    headerBackgroundColor: '#2E7D32',
+    groupHeaderBackgroundColor: '#E8F5E9',
+    groupHeaderTextColor: '#1B5E20',
+    totalsBackgroundColor: '#E8F5E9',
+    borderColor: '#C8E6C9',
+  );
 
   /// Predefined Dark Slate Theme
   factory ReportTheme.corporateDark() => ReportTheme(
-        primaryColor: '#37474F',
-        accentColor: '#212121',
-        headerBackgroundColor: '#37474F',
-        groupHeaderBackgroundColor: '#ECEFF1',
-        groupHeaderTextColor: '#263238',
-        totalsBackgroundColor: '#CFD8DC',
-        borderColor: '#B0BEC5',
-      );
+    primaryColor: '#37474F',
+    accentColor: '#212121',
+    headerBackgroundColor: '#37474F',
+    groupHeaderBackgroundColor: '#ECEFF1',
+    groupHeaderTextColor: '#263238',
+    totalsBackgroundColor: '#CFD8DC',
+    borderColor: '#B0BEC5',
+  );
 
   /// Predefined Slate Grey Theme
   factory ReportTheme.slateGrey() => ReportTheme(
-        primaryColor: '#455A64',
-        accentColor: '#37474F',
-        headerBackgroundColor: '#455A64',
-        groupHeaderBackgroundColor: '#F0F4F8',
-        groupHeaderTextColor: '#273238',
-        totalsBackgroundColor: '#E1E8ED',
-        borderColor: '#CFD8DC',
-      );
+    primaryColor: '#455A64',
+    accentColor: '#37474F',
+    headerBackgroundColor: '#455A64',
+    groupHeaderBackgroundColor: '#F0F4F8',
+    groupHeaderTextColor: '#273238',
+    totalsBackgroundColor: '#E1E8ED',
+    borderColor: '#CFD8DC',
+  );
 }
 
 /// Represents formatted tabular data rows with custom column structures
