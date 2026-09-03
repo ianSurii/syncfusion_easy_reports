@@ -1,7 +1,8 @@
 name: syncfusion_easy_reports
-description: "A new Flutter package project."
+description: "Flutter package to generate reports in PDF and Excel formats using Syncfusion Flutter widgets."
 version: 0.0.1
-homepage:
+homepage: https://github.com/ianSurii/syncfusion_easy_reports
+repository: https://github.com/ianSurii/syncfusion_easy_reports
 
 environment:
   sdk: ^3.12.2
