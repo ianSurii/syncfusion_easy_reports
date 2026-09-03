@@ -320,8 +320,20 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen>
     );
 
     final sections = <ReportSection>[];
-    sections.add(ReportSection(title: 'Payroll Summary', description: 'Full payroll ledger', table: payrollTable));
-    sections.add(ReportSection(title: 'ABC Bank - Loan Deductions', description: 'Employees with bank loan deductions', table: loanTable));
+    sections.add(
+      ReportSection(
+        title: 'Payroll Summary',
+        description: 'Full payroll ledger',
+        table: payrollTable,
+      ),
+    );
+    sections.add(
+      ReportSection(
+        title: 'ABC Bank - Loan Deductions',
+        description: 'Employees with bank loan deductions',
+        table: loanTable,
+      ),
+    );
 
     final footer = {
       'Prepared By': '',
@@ -330,12 +342,19 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen>
       'Authorized Date': '',
     };
 
-    final settings = ReportSettings(userPassword: 'secure_password_123', ownerPassword: 'owner_secret');
+    final settings = ReportSettings(
+      userPassword: 'secure_password_123',
+      ownerPassword: 'owner_secret',
+    );
 
     final report = ReportData(
       title: 'Categorized Payroll Report',
       sections: sections,
-      branding: ReportBranding(companyName: 'Demo Corp', reportTitle: 'Payroll Register', reportDate: DateTime.now()),
+      branding: ReportBranding(
+        companyName: 'Demo Corp',
+        reportTitle: 'Payroll Register',
+        reportDate: DateTime.now(),
+      ),
       footerData: footer,
       settings: settings,
     );
@@ -358,10 +377,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen>
     final net = gross - tax - deductions;
 
     final table = ReportTable(
-      headers: [
-        'Field',
-        'Value',
-      ],
+      headers: ['Field', 'Value'],
       rows: [
         ['Employee ID', e['id']],
         ['Name', e['name']],
@@ -376,8 +392,8 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen>
         ['Net Pay', net],
         ['Bank Account', 'ACC1001'],
       ],
-      numberColumnIndices: [4,5,6,7,8,9,10],
-      currencyColumnIndices: [4,5,6,7,8,9,10],
+      numberColumnIndices: [4, 5, 6, 7, 8, 9, 10],
+      currencyColumnIndices: [4, 5, 6, 7, 8, 9, 10],
       currencySymbol: _interactiveCurrencySymbol,
       calculateTotals: false,
     );
@@ -399,7 +415,11 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen>
     final report = ReportData(
       title: 'Payslip - ${e['name']}',
       sections: [section],
-      branding: ReportBranding(companyName: 'Demo Corp', reportTitle: 'Payslip', reportDate: DateTime.now()),
+      branding: ReportBranding(
+        companyName: 'Demo Corp',
+        reportTitle: 'Payslip',
+        reportDate: DateTime.now(),
+      ),
       footerData: footer,
       settings: ReportSettings(),
     );
@@ -803,14 +823,18 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen>
                   onPressed: _generateAdvancedPayrollExcel,
                   icon: const Icon(Icons.work_outline),
                   label: const Text('Export Advanced Payroll'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey[50]),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey[50],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 ElevatedButton.icon(
                   onPressed: _generatePayslipPdf,
                   icon: const Icon(Icons.picture_as_pdf),
                   label: const Text('Export Payslip (PDF)'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[50]),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[50],
+                  ),
                 ),
               ],
             ),
@@ -1142,28 +1166,44 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen>
                                       scrollDirection: Axis.horizontal,
                                       child: ConstrainedBox(
                                         constraints: BoxConstraints(
-                                          minWidth: MediaQuery.of(context).size.width * 0.4,
+                                          minWidth:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.width *
+                                              0.4,
                                         ),
                                         child: SingleChildScrollView(
                                           child: DataTable(
                                             columns: const [
-                                              DataColumn(label: Text('Employee ID')),
+                                              DataColumn(
+                                                label: Text('Employee ID'),
+                                              ),
                                               DataColumn(label: Text('Name')),
-                                              DataColumn(label: Text('Department')),
+                                              DataColumn(
+                                                label: Text('Department'),
+                                              ),
                                               DataColumn(label: Text('Salary')),
                                             ],
-                                            rows: _interactivePreviewRows.map(
-                                              (r) {
-                                                return DataRow(
-                                                  cells: [
-                                                    DataCell(Text(r[0].toString())),
-                                                    DataCell(Text(r[1].toString())),
-                                                    DataCell(Text(r[2].toString())),
-                                                    DataCell(Text(r[3].toString())),
-                                                  ],
-                                                );
-                                              },
-                                            ).toList(),
+                                            rows: _interactivePreviewRows.map((
+                                              r,
+                                            ) {
+                                              return DataRow(
+                                                cells: [
+                                                  DataCell(
+                                                    Text(r[0].toString()),
+                                                  ),
+                                                  DataCell(
+                                                    Text(r[1].toString()),
+                                                  ),
+                                                  DataCell(
+                                                    Text(r[2].toString()),
+                                                  ),
+                                                  DataCell(
+                                                    Text(r[3].toString()),
+                                                  ),
+                                                ],
+                                              );
+                                            }).toList(),
                                           ),
                                         ),
                                       ),

@@ -32,7 +32,8 @@ class PdfReportGenerator {
       logoBytes = await _resolveLogo(reportData.branding!);
     }
 
-    final ReportBranding? resolvedBranding = reportData.branding != null && logoBytes != null
+    final ReportBranding? resolvedBranding =
+        reportData.branding != null && logoBytes != null
         ? reportData.branding!.copyWithBytes(logoBytes)
         : reportData.branding;
 
@@ -71,7 +72,9 @@ class PdfReportGenerator {
     page.graphics.drawString(
       reportData.title,
       titleFont,
-      brush: PdfSolidBrush(_parseHexColor(theme.primaryColor, PdfColor(21, 101, 192))),
+      brush: PdfSolidBrush(
+        _parseHexColor(theme.primaryColor, PdfColor(21, 101, 192)),
+      ),
       bounds: Rect.fromLTWH(0, y, pageWidth, 30),
     );
     y += theme.fontSizeTitle + 15;
@@ -101,7 +104,9 @@ class PdfReportGenerator {
         page.graphics.drawString(
           section.title!,
           sectionTitleFont,
-          brush: PdfSolidBrush(_parseHexColor(theme.accentColor, PdfColor(13, 71, 161))),
+          brush: PdfSolidBrush(
+            _parseHexColor(theme.accentColor, PdfColor(13, 71, 161)),
+          ),
           bounds: Rect.fromLTWH(0, y, pageWidth, 25),
         );
         y += theme.fontSizeTitle - 4 + 10;
@@ -137,7 +142,11 @@ class PdfReportGenerator {
 
           // Configure widths
           if (section.table!.columnWidths != null) {
-            for (int col = 0; col < section.table!.columnWidths!.length; col++) {
+            for (
+              int col = 0;
+              col < section.table!.columnWidths!.length;
+              col++
+            ) {
               if (col < grid.columns.count) {
                 grid.columns[col].width = section.table!.columnWidths![col];
               }
@@ -153,16 +162,23 @@ class PdfReportGenerator {
               if (section.table!.columnAlignments != null &&
                   section.table!.columnAlignments!.containsKey(col)) {
                 headerRow.cells[col].stringFormat = PdfStringFormat(
-                  alignment: _parseTextAlignment(section.table!.columnAlignments![col]!),
+                  alignment: _parseTextAlignment(
+                    section.table!.columnAlignments![col]!,
+                  ),
                 );
               }
             }
 
             headerRow.style.font = headerFont;
-            headerRow.style.backgroundBrush =
-                PdfSolidBrush(_parseHexColor(theme.headerBackgroundColor, PdfColor(21, 101, 192)));
-            headerRow.style.textBrush =
-                PdfSolidBrush(_parseHexColor(theme.headerTextColor, PdfColor(255, 255, 255)));
+            headerRow.style.backgroundBrush = PdfSolidBrush(
+              _parseHexColor(
+                theme.headerBackgroundColor,
+                PdfColor(21, 101, 192),
+              ),
+            );
+            headerRow.style.textBrush = PdfSolidBrush(
+              _parseHexColor(theme.headerTextColor, PdfColor(255, 255, 255)),
+            );
           }
 
           // Data Rows
@@ -177,54 +193,91 @@ class PdfReportGenerator {
 
             if (isGroupHeader) {
               pdfRow.cells[0].columnSpan = grid.columns.count;
-              pdfRow.cells[0].value = row.isNotEmpty ? row[0]?.toString() ?? '' : '';
+              pdfRow.cells[0].value = row.isNotEmpty
+                  ? row[0]?.toString() ?? ''
+                  : '';
 
               pdfRow.style.font = headerFont;
-              pdfRow.style.backgroundBrush =
-                  PdfSolidBrush(_parseHexColor(theme.groupHeaderBackgroundColor, PdfColor(227, 242, 253)));
-              pdfRow.style.textBrush =
-                  PdfSolidBrush(_parseHexColor(theme.groupHeaderTextColor, PdfColor(13, 71, 161)));
+              pdfRow.style.backgroundBrush = PdfSolidBrush(
+                _parseHexColor(
+                  theme.groupHeaderBackgroundColor,
+                  PdfColor(227, 242, 253),
+                ),
+              );
+              pdfRow.style.textBrush = PdfSolidBrush(
+                _parseHexColor(
+                  theme.groupHeaderTextColor,
+                  PdfColor(13, 71, 161),
+                ),
+              );
             } else if (isGroupTotal) {
               for (int col = 0; col < row.length; col++) {
                 final value = row[col];
-                pdfRow.cells[col].value = _getFormattedValue(value, col, section.table!);
+                pdfRow.cells[col].value = _getFormattedValue(
+                  value,
+                  col,
+                  section.table!,
+                );
 
                 if (col == 0) {
-                  pdfRow.cells[col].stringFormat = PdfStringFormat(alignment: PdfTextAlignment.left);
+                  pdfRow.cells[col].stringFormat = PdfStringFormat(
+                    alignment: PdfTextAlignment.left,
+                  );
                 } else if (section.table!.columnAlignments != null &&
                     section.table!.columnAlignments!.containsKey(col)) {
                   pdfRow.cells[col].stringFormat = PdfStringFormat(
-                    alignment: _parseTextAlignment(section.table!.columnAlignments![col]!),
+                    alignment: _parseTextAlignment(
+                      section.table!.columnAlignments![col]!,
+                    ),
                   );
                 }
               }
               pdfRow.style.font = headerFont;
-              pdfRow.style.backgroundBrush =
-                  PdfSolidBrush(_parseHexColor(theme.groupHeaderBackgroundColor, PdfColor(227, 242, 253)));
-              pdfRow.style.textBrush =
-                  PdfSolidBrush(_parseHexColor(theme.groupHeaderTextColor, PdfColor(13, 71, 161)));
+              pdfRow.style.backgroundBrush = PdfSolidBrush(
+                _parseHexColor(
+                  theme.groupHeaderBackgroundColor,
+                  PdfColor(227, 242, 253),
+                ),
+              );
+              pdfRow.style.textBrush = PdfSolidBrush(
+                _parseHexColor(
+                  theme.groupHeaderTextColor,
+                  PdfColor(13, 71, 161),
+                ),
+              );
             } else {
               // Regular row values
               for (int col = 0; col < row.length; col++) {
                 final value = row[col];
-                pdfRow.cells[col].value = _getFormattedValue(value, col, section.table!);
+                pdfRow.cells[col].value = _getFormattedValue(
+                  value,
+                  col,
+                  section.table!,
+                );
                 pdfRow.cells[col].style.font = bodyFont;
 
                 if (section.table!.columnAlignments != null &&
                     section.table!.columnAlignments!.containsKey(col)) {
                   pdfRow.cells[col].stringFormat = PdfStringFormat(
-                    alignment: _parseTextAlignment(section.table!.columnAlignments![col]!),
+                    alignment: _parseTextAlignment(
+                      section.table!.columnAlignments![col]!,
+                    ),
                   );
                 }
               }
 
               // Alternating backgrounds (zebra striping)
               if (rIndex % 2 == 0) {
-                pdfRow.style.backgroundBrush =
-                    PdfSolidBrush(_parseHexColor(theme.zebraLightColor, PdfColor(245, 245, 245)));
+                pdfRow.style.backgroundBrush = PdfSolidBrush(
+                  _parseHexColor(
+                    theme.zebraLightColor,
+                    PdfColor(245, 245, 245),
+                  ),
+                );
               } else {
-                pdfRow.style.backgroundBrush =
-                    PdfSolidBrush(_parseHexColor(theme.zebraDarkColor, PdfColor(255, 255, 255)));
+                pdfRow.style.backgroundBrush = PdfSolidBrush(
+                  _parseHexColor(theme.zebraDarkColor, PdfColor(255, 255, 255)),
+                );
               }
             }
             rIndex++;
@@ -242,7 +295,9 @@ class PdfReportGenerator {
               totalRow.cells[col].value = totals[col];
 
               if (col == 0) {
-                totalRow.cells[col].stringFormat = PdfStringFormat(alignment: PdfTextAlignment.left);
+                totalRow.cells[col].stringFormat = PdfStringFormat(
+                  alignment: PdfTextAlignment.left,
+                );
               } else {
                 totalRow.cells[col].stringFormat = PdfStringFormat(
                   alignment: _parseTextAlignment(theme.totalsAlignment),
@@ -251,10 +306,15 @@ class PdfReportGenerator {
             }
 
             totalRow.style.font = headerFont;
-            totalRow.style.backgroundBrush =
-                PdfSolidBrush(_parseHexColor(theme.totalsBackgroundColor, PdfColor(255, 249, 196)));
-            totalRow.style.textBrush =
-                PdfSolidBrush(_parseHexColor(theme.totalsTextColor, PdfColor(0, 0, 0)));
+            totalRow.style.backgroundBrush = PdfSolidBrush(
+              _parseHexColor(
+                theme.totalsBackgroundColor,
+                PdfColor(255, 249, 196),
+              ),
+            );
+            totalRow.style.textBrush = PdfSolidBrush(
+              _parseHexColor(theme.totalsTextColor, PdfColor(0, 0, 0)),
+            );
           }
 
           // Cells Padding settings
@@ -269,7 +329,8 @@ class PdfReportGenerator {
           if (!section.table!.showBorders) {
             for (int i = 0; i < grid.headers.count; i++) {
               for (int j = 0; j < grid.headers[i].cells.count; j++) {
-                grid.headers[i].cells[j].style.borders.all = PdfPens.transparent;
+                grid.headers[i].cells[j].style.borders.all =
+                    PdfPens.transparent;
               }
             }
             for (int i = 0; i < grid.rows.count; i++) {
@@ -279,7 +340,10 @@ class PdfReportGenerator {
             }
           } else {
             // Apply theme border color
-            final borderPen = PdfPen(_parseHexColor(theme.borderColor, PdfColor(189, 189, 189)), width: 0.5);
+            final borderPen = PdfPen(
+              _parseHexColor(theme.borderColor, PdfColor(189, 189, 189)),
+              width: 0.5,
+            );
             for (int i = 0; i < grid.rows.count; i++) {
               for (int j = 0; j < grid.rows[i].cells.count; j++) {
                 grid.rows[i].cells[j].style.borders.all = borderPen;
@@ -319,7 +383,11 @@ class PdfReportGenerator {
               pdfRow.cells[0].style.font = headerFont;
 
               // Value formatted
-              pdfRow.cells[1].value = _getFormattedValue(row[col], col, section.table!);
+              pdfRow.cells[1].value = _getFormattedValue(
+                row[col],
+                col,
+                section.table!,
+              );
               pdfRow.cells[1].style.font = bodyFont;
             }
 
@@ -338,7 +406,10 @@ class PdfReportGenerator {
                 }
               }
             } else {
-              final borderPen = PdfPen(_parseHexColor(theme.borderColor, PdfColor(189, 189, 189)), width: 0.5);
+              final borderPen = PdfPen(
+                _parseHexColor(theme.borderColor, PdfColor(189, 189, 189)),
+                width: 0.5,
+              );
               for (int i = 0; i < grid.rows.count; i++) {
                 for (int j = 0; j < grid.rows[i].cells.count; j++) {
                   grid.rows[i].cells[j].style.borders.all = borderPen;
@@ -393,9 +464,14 @@ class PdfReportGenerator {
   }
 
   /// Generates the PDF report and automatically triggers file save/download.
-  Future<void> generateAndDownload(ReportData reportData, String filename) async {
+  Future<void> generateAndDownload(
+    ReportData reportData,
+    String filename,
+  ) async {
     final List<int> bytes = await generate(reportData);
-    final String fullFilename = filename.endsWith('.pdf') ? filename : '$filename.pdf';
+    final String fullFilename = filename.endsWith('.pdf')
+        ? filename
+        : '$filename.pdf';
 
     final downloader = FileDownloader();
     await downloader.downloadFile(
@@ -434,7 +510,11 @@ class PdfReportGenerator {
     document.pageSettings.margins.all = settings.margin;
   }
 
-  void _addHeader(PdfDocument document, ReportBranding? branding, ReportTheme theme) {
+  void _addHeader(
+    PdfDocument document,
+    ReportBranding? branding,
+    ReportTheme theme,
+  ) {
     if (branding == null) return;
 
     final double width = document.pageSettings.size.width;
@@ -445,26 +525,45 @@ class PdfReportGenerator {
     // Draw logo image
     if (branding.logoBytes != null) {
       try {
-        final PdfBitmap image = PdfBitmap(Uint8List.fromList(branding.logoBytes!));
+        final PdfBitmap image = PdfBitmap(
+          Uint8List.fromList(branding.logoBytes!),
+        );
         header.graphics.drawImage(
           image,
-          Rect.fromLTWH(0, 0, (branding.logoWidth ?? 60).toDouble(), (branding.logoHeight ?? 60).toDouble()),
+          Rect.fromLTWH(
+            0,
+            0,
+            (branding.logoWidth ?? 60).toDouble(),
+            (branding.logoHeight ?? 60).toDouble(),
+          ),
         );
       } catch (e) {
         _log.warning('Failed to render logo bitmap in PDF: $e');
       }
     }
 
-    double textX = branding.logoBytes != null ? (branding.logoWidth ?? 60) + 15 : 0;
+    double textX = branding.logoBytes != null
+        ? (branding.logoWidth ?? 60) + 15
+        : 0;
     double y = 0;
 
-    final bodyFont = PdfStandardFont(PdfFontFamily.helvetica, theme.fontSizeBody - 1);
-    final compColor = _parseHexColor(theme.primaryColor, PdfColor(21, 101, 192));
+    final bodyFont = PdfStandardFont(
+      PdfFontFamily.helvetica,
+      theme.fontSizeBody - 1,
+    );
+    final compColor = _parseHexColor(
+      theme.primaryColor,
+      PdfColor(21, 101, 192),
+    );
 
     if (branding.companyName != null) {
       header.graphics.drawString(
         branding.companyName!,
-        PdfStandardFont(PdfFontFamily.helvetica, theme.fontSizeHeader + 3, style: PdfFontStyle.bold),
+        PdfStandardFont(
+          PdfFontFamily.helvetica,
+          theme.fontSizeHeader + 3,
+          style: PdfFontStyle.bold,
+        ),
         brush: PdfSolidBrush(compColor),
         bounds: Rect.fromLTWH(textX, y, width - textX, 20),
       );
@@ -472,17 +571,29 @@ class PdfReportGenerator {
     }
 
     if (branding.address != null) {
-      header.graphics.drawString(branding.address!, bodyFont, bounds: Rect.fromLTWH(textX, y, width - textX, 15));
+      header.graphics.drawString(
+        branding.address!,
+        bodyFont,
+        bounds: Rect.fromLTWH(textX, y, width - textX, 15),
+      );
       y += 13;
     }
 
     if (branding.email != null) {
-      header.graphics.drawString('Email: ${branding.email}', bodyFont, bounds: Rect.fromLTWH(textX, y, width - textX, 15));
+      header.graphics.drawString(
+        'Email: ${branding.email}',
+        bodyFont,
+        bounds: Rect.fromLTWH(textX, y, width - textX, 15),
+      );
       y += 13;
     }
 
     if (branding.phone != null) {
-      header.graphics.drawString('Phone: ${branding.phone}', bodyFont, bounds: Rect.fromLTWH(textX, y, width - textX, 15));
+      header.graphics.drawString(
+        'Phone: ${branding.phone}',
+        bodyFont,
+        bounds: Rect.fromLTWH(textX, y, width - textX, 15),
+      );
     }
 
     document.template.top = header;
@@ -494,7 +605,10 @@ class PdfReportGenerator {
       Rect.fromLTWH(0, 0, width, 40),
     );
 
-    final font = PdfStandardFont(PdfFontFamily.helvetica, theme.fontSizeBody - 2);
+    final font = PdfStandardFont(
+      PdfFontFamily.helvetica,
+      theme.fontSizeBody - 2,
+    );
 
     footer.graphics.drawString(
       'Generated by Easy Reports Wrapper',
@@ -519,7 +633,8 @@ class PdfReportGenerator {
     final userPass = settings.userPassword;
     final ownerPass = settings.ownerPassword;
 
-    if ((userPass != null && userPass.isNotEmpty) || (ownerPass != null && ownerPass.isNotEmpty)) {
+    if ((userPass != null && userPass.isNotEmpty) ||
+        (ownerPass != null && ownerPass.isNotEmpty)) {
       final PdfSecurity security = document.security;
       security.userPassword = userPass ?? '';
       if (ownerPass != null) {
@@ -584,30 +699,38 @@ class PdfReportGenerator {
     final double keySize = isHeaderData
         ? theme.fontSizeCustomDataHeader
         : isFooterData
-            ? theme.fontSizeFooterDataHeader
-            : theme.fontSizeBody;
+        ? theme.fontSizeFooterDataHeader
+        : theme.fontSizeBody;
     final double valSize = isHeaderData
         ? theme.fontSizeCustomDataValue
         : isFooterData
-            ? theme.fontSizeFooterDataValue
-            : theme.fontSizeBody;
+        ? theme.fontSizeFooterDataValue
+        : theme.fontSizeBody;
 
-    final PdfFont keyFont = PdfStandardFont(PdfFontFamily.helvetica, keySize, style: PdfFontStyle.bold);
+    final PdfFont keyFont = PdfStandardFont(
+      PdfFontFamily.helvetica,
+      keySize,
+      style: PdfFontStyle.bold,
+    );
     final PdfFont valueFont = PdfStandardFont(PdfFontFamily.helvetica, valSize);
 
     final String kColor = isHeaderData
         ? theme.customDataHeaderColor
         : isFooterData
-            ? theme.footerDataHeaderColor
-            : '#000000';
+        ? theme.footerDataHeaderColor
+        : '#000000';
     final String vColor = isHeaderData
         ? theme.customDataValueColor
         : isFooterData
-            ? theme.footerDataValueColor
-            : '#333333';
+        ? theme.footerDataValueColor
+        : '#333333';
 
-    final PdfBrush keyBrush = PdfSolidBrush(_parseHexColor(kColor, PdfColor(0, 0, 0)));
-    final PdfBrush valueBrush = PdfSolidBrush(_parseHexColor(vColor, PdfColor(0, 0, 0)));
+    final PdfBrush keyBrush = PdfSolidBrush(
+      _parseHexColor(kColor, PdfColor(0, 0, 0)),
+    );
+    final PdfBrush valueBrush = PdfSolidBrush(
+      _parseHexColor(vColor, PdfColor(0, 0, 0)),
+    );
 
     final double itemSpacing = theme.itemSpacing;
 
@@ -636,12 +759,17 @@ class PdfReportGenerator {
 
   String _getFormattedValue(dynamic value, int colIndex, ReportTable table) {
     final String symbol = table.currencySymbol ?? '';
-    final bool isCurrency = table.currencyColumnIndices?.contains(colIndex) ?? false;
-    final bool isNumber = table.numberColumnIndices?.contains(colIndex) ?? false;
+    final bool isCurrency =
+        table.currencyColumnIndices?.contains(colIndex) ?? false;
+    final bool isNumber =
+        table.numberColumnIndices?.contains(colIndex) ?? false;
 
     if (value is num) {
       if (isCurrency) {
-        final formatter = NumberFormat.currency(symbol: symbol, decimalDigits: 2);
+        final formatter = NumberFormat.currency(
+          symbol: symbol,
+          decimalDigits: 2,
+        );
         return formatter.format(value);
       } else if (isNumber) {
         final formatter = NumberFormat.decimalPattern();

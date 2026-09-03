@@ -6,7 +6,11 @@ import 'downloader.dart';
 /// Web file downloader implementation
 class WebFileDownloader implements FileDownloader {
   @override
-  Future<void> downloadFile(List<int> bytes, String filename, {String? mimeType}) async {
+  Future<void> downloadFile(
+    List<int> bytes,
+    String filename, {
+    String? mimeType,
+  }) async {
     try {
       final Uint8List uint8List = Uint8List.fromList(bytes);
       final web.Blob blob = web.Blob(

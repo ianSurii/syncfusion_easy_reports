@@ -9,7 +9,11 @@ abstract class FileDownloader {
   /// On Desktop, this prompts a save dialog.
   /// On Android, this saves to the public Downloads folder.
   /// On iOS, this opens a share sheet to save or send the document.
-  Future<void> downloadFile(List<int> bytes, String filename, {String? mimeType});
+  Future<void> downloadFile(
+    List<int> bytes,
+    String filename, {
+    String? mimeType,
+  });
 
   /// Factory constructor to get the platform-specific downloader.
   factory FileDownloader() => getPlatformDownloader();
