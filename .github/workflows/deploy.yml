@@ -1,0 +1,74 @@
+name: CI & GitHub Pages Deployment
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  validate-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install root dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Verify code formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Run unit and calculation tests
+        run: flutter test
+
+      - name: Install example dependencies
+        run: cd example && flutter pub get
+
+      - name: Analyze example app
+        run: cd example && flutter analyze
+
+      - name: Build Flutter Web Demo
+        run: |
+          cd example
+          flutter build web --base-href "/syncfusion_easy_reports/demo/" --release
+
+      - name: Prepare GitHub Pages Artifact
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p public/demo
+          cp -r doc/* public/ 2>/dev/null || true
+          cp -r example/build/web/* public/demo/
+
+      - name: Upload GitHub Pages Artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: validate-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

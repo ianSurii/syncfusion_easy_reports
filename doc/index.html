@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>syncfusion_easy_reports - Model-Driven Reporting for Flutter</title>
+  <meta name="description" content="Generate professional, multi-analysis Excel (.xlsx) and PDF reports from Dart models or JSON in Flutter.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1565C0;
+      --primary-dark: #0D47A1;
+      --primary-light: #E3F2FD;
+      --accent: #2E7D32;
+      --bg: #0B0F19;
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --code-bg: #1E293B;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0;
+    }
+
+    header {
+      background: linear-gradient(135deg, rgba(21, 101, 192, 0.2) 0%, rgba(13, 71, 161, 0.05) 100%);
+      border-bottom: 1px solid var(--card-border);
+      padding: 60px 24px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      background: linear-gradient(90deg, #FFFFFF, #90CAF9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 750px;
+      margin: 0 auto 32px;
+    }
+
+    .cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(21, 101, 192, 0.4);
+    }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.08); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin: 40px 0;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 24px;
+      backdrop-filter: blur(8px);
+    }
+
+    .card h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+      color: #90CAF9;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      margin: 16px 0;
+      color: #E2E8F0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.05);
+      color: #90CAF9;
+      font-weight: 600;
+    }
+
+    td { color: var(--text-muted); }
+
+    .check { color: #4ADE80; font-weight: bold; }
+    .cross { color: #F87171; }
+
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 32px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    footer a { color: #90CAF9; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">Version 0.0.1 • Flutter Package</div>
+    <h1>syncfusion_easy_reports</h1>
+    <p class="subtitle">
+      Professional, model-driven Excel (.xlsx) and PDF reporting engine for Flutter.
+      Define columns, calculations, and grouping once—render accurately across platforms.
+    </p>
+    <div class="cta-group">
+      <a href="demo/" class="btn btn-primary" id="btn-live-demo">🚀 Open Interactive Web Demo</a>
+      <a href="https://pub.dev/packages/syncfusion_easy_reports" class="btn btn-secondary" target="_blank" rel="noopener">📦 View on pub.dev</a>
+      <a href="https://github.com/ianSurii/syncfusion_easy_reports" class="btn btn-secondary" target="_blank" rel="noopener">⭐ GitHub Repo</a>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section>
+      <h2>Core Architecture: Define Once, Export Everywhere</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>🎯 Model-Driven Schema</h3>
+          <p>Pass custom Dart classes (<code>Employee</code>, <code>Invoice</code>, <code>Order</code>) or JSON-like maps through typed column selectors with automated type normalization.</p>
+        </div>
+        <div class="card">
+          <h3>📊 Multi-Analysis Engine</h3>
+          <p>Generate detailed listings, single/multi-field grouping, custom aging buckets, Top-N rankings, and 2D cross-tabulation pivot tables from one dataset.</p>
+        </div>
+        <div class="card">
+          <h3>🔐 Security & Financial Accuracy</h3>
+          <p>Formula injection protection, reconciliation auditing, high-precision decimal rounding, workbook password protection, and encrypted PDFs with permission flags.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Quick Start Example</h2>
+      <pre><code>import 'package:syncfusion_easy_reports/syncfusion_easy_reports.dart';
+
+// 1. Define Reusable Report Schema & Analyses
+final definition = ReportDefinition&lt;Employee&gt;(
+  title: 'Monthly Compensation Audit',
+  columns: [
+    ReportColumn.text(id: 'id', title: 'Employee ID', value: (e) => e.id),
+    ReportColumn.text(id: 'dept', title: 'Department', value: (e) => e.department),
+    ReportColumn.money(id: 'netPay', title: 'Net Pay', currencyCode: 'USD', value: (e) => e.netPay),
+  ],
+  analyses: [
+    ReportAnalysis.detail(id: 'register', title: 'Payroll Register'),
+    ReportAnalysis.grouped(
+      id: 'departments',
+      title: 'Department Summary',
+      groupBy: ['dept'],
+      measures: [
+        ReportMeasure.count(id: 'headcount'),
+        ReportMeasure.sum(column: 'netPay', currencyCode: 'USD'),
+        ReportMeasure.average(column: 'netPay', title: 'Avg Net Pay', currencyCode: 'USD'),
+      ],
+    ),
+  ],
+);
+
+// 2. Prepare & Generate Standalone Bytes (Zero UI Dependency)
+final engine = ReportEngine();
+final prepared = await engine.prepare(definition: definition, records: employeeList);
+
+final excelArtifact = await engine.exportExcel(prepared);
+final pdfArtifact = await engine.exportPdf(prepared);
+
+// 3. Save or Download (Cross-Platform)
+await ReportSaver().save(excelArtifact);</code></pre>
+    </section>
+
+    <section>
+      <h2>Excel and PDF Capability Matrix</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Feature / Capability</th>
+            <th>Excel (.xlsx)</th>
+            <th>PDF (.pdf)</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Multi-Sheet / Multi-Section</td>
+            <td><span class="check">✔</span> Worksheets</td>
+            <td><span class="check">✔</span> Document Sections</td>
+            <td>One dataset produces separate tabs or sections</td>
+          </tr>
+          <tr>
+            <td>Group Headers & Subtotals</td>
+            <td><span class="check">✔</span> Native Rows</td>
+            <td><span class="check">✔</span> Styled Grids</td>
+            <td>Consistent calculation values guaranteed</td>
+          </tr>
+          <tr>
+            <td>Repeated Headers on Break</td>
+            <td><span class="check">✔</span> Print Setup</td>
+            <td><span class="check">✔</span> Paginated Grid</td>
+            <td>Headers repeat on every page break</td>
+          </tr>
+          <tr>
+            <td>2D Cross-Tabulation (Pivot)</td>
+            <td><span class="check">✔</span> Computed Matrix</td>
+            <td><span class="check">✔</span> Computed Matrix</td>
+            <td>Engine-calculated cross-tab matrix</td>
+          </tr>
+          <tr>
+            <td>Overview / TOC Navigation</td>
+            <td><span class="check">✔</span> Hyperlinked Sheet</td>
+            <td><span class="check">✔</span> Header Cover</td>
+            <td>Auto-generated Table of Contents</td>
+          </tr>
+          <tr>
+            <td>Password Protection</td>
+            <td><span class="check">✔</span> Sheet/Workbook</td>
+            <td><span class="check">✔</span> User/Owner Encryption</td>
+            <td>PDF/A and encryption are mutually exclusive</td>
+          </tr>
+          <tr>
+            <td>Formula Injection Safety</td>
+            <td><span class="check">✔</span> Escaped Prefixes</td>
+            <td>N/A</td>
+            <td>Untrusted input starting with =, +, -, @ is sanitized</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Privacy & Licensing Disclosures</h2>
+      <div class="card">
+        <p><strong>100% Client-Side Generation:</strong> All calculations, formatting, Excel OpenXML rendering, and PDF rendering occur purely inside the Flutter client. No customer records or sensitive numbers are transmitted over any network.</p>
+        <br>
+        <p><strong>Syncfusion Licensing:</strong> This package wraps Syncfusion Flutter PDF and XlsIO libraries. Please ensure you have a valid Syncfusion Community License or Commercial License in compliance with Syncfusion terms.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Released under the <a href="https://github.com/ianSurii/syncfusion_easy_reports/blob/main/LICENSE">MIT License</a> • Maintained by <a href="https://github.com/ianSurii">Ian Muthuri</a></p>
+  </footer>
+
+</body>
+</html>
