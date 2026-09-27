@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,38 +15,30 @@ class NativeFileDownloader implements FileDownloader {
     String? mimeType,
   }) async {
     try {
+      final Uint8List uint8Bytes = bytes is Uint8List
+          ? bytes
+          : Uint8List.fromList(bytes);
+
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-        // Desktop platform: try FilePicker.saveFile when available, otherwise
-        // fall back to writing directly to the Downloads folder and open it.
-        final dynamic platformPicker = FilePicker.platform;
-        String? outputPath;
+        // Desktop platform: try FilePicker.saveFile
         try {
-          // Some versions of file_picker expose `saveFile`, others do not.
-          // Call dynamically and catch NoSuchMethodError at runtime.
-          outputPath = await platformPicker.saveFile(
+          final Uri? savedUri = await FilePicker.saveFile(
             dialogTitle: 'Save Report',
             fileName: filename,
+            bytes: uint8Bytes,
           );
-        } on NoSuchMethodError catch (_) {
-          // saveFile not available on this FilePicker build; fallback below.
-          outputPath = null;
-        } catch (_) {
-          outputPath = null;
-        }
+          if (savedUri != null) {
+            return;
+          }
+        } catch (_) {}
 
-        if (outputPath != null) {
-          final file = File(outputPath);
-          await file.writeAsBytes(bytes);
-          return;
-        }
-
-        // Fallback: write to user's Downloads directory (preferred on macOS)
+        // Fallback: write directly to user's Downloads directory (preferred on macOS)
         try {
           final downloadsDir = await getDownloadsDirectory();
           if (downloadsDir != null) {
             final filePath = '${downloadsDir.path}/$filename';
             final file = File(filePath);
-            await file.writeAsBytes(bytes);
+            await file.writeAsBytes(uint8Bytes);
             // Try to reveal/open the file so the user can access it immediately.
             try {
               if (Platform.isMacOS) {
@@ -64,7 +57,7 @@ class NativeFileDownloader implements FileDownloader {
         final desktopDir = await getApplicationDocumentsDirectory();
         final filePath = '${desktopDir.path}/$filename';
         final file = File(filePath);
-        await file.writeAsBytes(bytes);
+        await file.writeAsBytes(uint8Bytes);
         try {
           if (Platform.isMacOS) {
             await Process.run('open', [filePath]);
@@ -76,7 +69,6 @@ class NativeFileDownloader implements FileDownloader {
         } catch (_) {}
       } else if (Platform.isAndroid) {
         // Android platform: request storage permission if required (API level < 33)
-        // Request storage permission
         try {
           if (await Permission.storage.isDenied) {
             await Permission.storage.request();
@@ -89,7 +81,7 @@ class NativeFileDownloader implements FileDownloader {
           if (await downloadDir.exists()) {
             final filePath = '${downloadDir.path}/$filename';
             final file = File(filePath);
-            await file.writeAsBytes(bytes);
+            await file.writeAsBytes(uint8Bytes);
             return;
           }
         } catch (_) {}
@@ -100,7 +92,7 @@ class NativeFileDownloader implements FileDownloader {
           if (directory != null) {
             final filePath = '${directory.path}/$filename';
             final file = File(filePath);
-            await file.writeAsBytes(bytes);
+            await file.writeAsBytes(uint8Bytes);
             return;
           }
         } catch (_) {}
@@ -109,15 +101,14 @@ class NativeFileDownloader implements FileDownloader {
         final directory = await getApplicationDocumentsDirectory();
         final filePath = '${directory.path}/$filename';
         final file = File(filePath);
-        await file.writeAsBytes(bytes);
+        await file.writeAsBytes(uint8Bytes);
       } else if (Platform.isIOS) {
         // iOS platform: Save to temp directory and open Share sheet
         final tempDir = await getTemporaryDirectory();
         final filePath = '${tempDir.path}/$filename';
         final file = File(filePath);
-        await file.writeAsBytes(bytes);
+        await file.writeAsBytes(uint8Bytes);
 
-        // share_plus updated API; suppress deprecation warning for now
         // ignore: deprecated_member_use
         await Share.shareXFiles([
           XFile(filePath, name: filename, mimeType: mimeType),
