@@ -1,0 +1,41 @@
+name: CI & Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Flutter Analyze & Parity Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies (root)
+        run: flutter pub get
+
+      - name: Analyze package
+        run: flutter analyze
+
+      - name: Verify code formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Run unit & calculation tests
+        run: flutter test --coverage
+
+      - name: Install dependencies (example)
+        run: cd example && flutter pub get
+
+      - name: Analyze example app
+        run: cd example && flutter analyze
+
+      - name: Run example widget tests
+        run: cd example && flutter test

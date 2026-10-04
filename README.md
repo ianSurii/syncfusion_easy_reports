@@ -2,7 +2,7 @@
 
 [![pub package](https://img.shields.io/pub/v/syncfusion_easy_reports.svg)](https://pub.dev/packages/syncfusion_easy_reports)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![CI & Docs](https://github.com/ianSurii/syncfusion_easy_reports/actions/workflows/deploy.yml/badge.svg)](https://github.com/ianSurii/syncfusion_easy_reports/actions/workflows/deploy.yml)
+[![CI & Test Suite](https://github.com/ianSurii/syncfusion_easy_reports/actions/workflows/ci.yml/badge.svg)](https://github.com/ianSurii/syncfusion_easy_reports/actions/workflows/ci.yml)
 
 **syncfusion_easy_reports** helps Flutter developers generate professional Excel (`.xlsx`) and PDF reports from structured application data. Define columns, grouping rules, calculations, and branding, then reuse those definitions across detailed reports, categorized worksheets, summaries, and printable documents.
 
