@@ -121,7 +121,10 @@ void main() {
       );
       expect(pivot.type, ReportAnalysisType.crossTab);
       expect(pivot.crossTabMatrix, isNotNull);
-      expect(pivot.crossTabMatrix!.rowKeys, containsAll(['Engineering', 'Marketing']));
+      expect(
+        pivot.crossTabMatrix!.rowKeys,
+        containsAll(['Engineering', 'Marketing']),
+      );
     });
 
     test('Should export Excel and PDF with one-liner methods', () async {

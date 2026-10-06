@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:syncfusion_easy_reports/syncfusion_easy_reports.dart';
+import 'package:syncfusion_easy_reports/src/generators/report_chart_data.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -227,37 +229,79 @@ void main() {
     });
 
     test(
-      'Pre-built Domain Presets should generate both Excel and PDF without errors',
+      'Dynamic reports with clean table style, summary items, and payment details export to Excel and PDF',
       () async {
-        final payrollPreset = PayrollReportPresets.monthlyPayroll();
-        final salesPreset = SalesReportPresets.salesPerformance();
-        final inventoryPreset = InventoryReportPresets.stockValuation();
-        final hrPreset = HrReportPresets.employeeRegister();
-        final projectPreset = ProjectReportPresets.timesheetSummary();
+        final dynamicDef = ReportDefinition<Map<String, dynamic>>(
+          title: 'Invoice & Operations Summary',
+          columns: [
+            ReportColumn.text(
+              id: 'name',
+              title: 'Employee Name',
+              value: (m) => m['name'],
+            ),
+            ReportColumn.text(
+              id: 'dept',
+              title: 'Department',
+              value: (m) => m['dept'],
+            ),
+            ReportColumn.money(
+              id: 'salary',
+              title: 'Base Amount',
+              currencyCode: 'USD',
+              value: (m) => m['salary'],
+            ),
+          ],
+          analyses: [
+            ReportAnalysis.detail(
+              id: 'details',
+              title: 'Itemized Details',
+              showGrandTotal: true,
+            ),
+          ],
+          summaryItems: [
+            ReportSummaryItem.subtotal(22500.0, currencyCode: 'USD'),
+            ReportSummaryItem.tax('VAT (16%)', 3600.0, currencyCode: 'USD'),
+            ReportSummaryItem.total(26100.0, currencyCode: 'USD'),
+          ],
+          paymentDetails: ReportPaymentDetails(
+            bankName: 'Standard Chartered Bank',
+            accountName: 'Acme Operations Ltd',
+            accountNumber: '0108044921000',
+            branch: 'Nairobi West',
+            swiftCode: 'SCBLKENX',
+            termsOrNotes: ['Payment due within 30 days of invoice date.'],
+          ),
+        );
 
-        for (final preset in [
-          payrollPreset,
-          salesPreset,
-          inventoryPreset,
-          hrPreset,
-          projectPreset,
-        ]) {
-          final prepared = await engine.prepare(
-            definition: preset,
-            records: sampleData,
-          );
+        final prepared = await engine.prepare(
+          definition: dynamicDef,
+          records: sampleData,
+        );
 
-          final excel = await engine.exportExcel(prepared);
-          final pdf = await engine.exportPdf(prepared);
+        final excel = await engine.exportExcel(
+          prepared,
+          options: const ExcelExportOptions(
+            showGridlines: false,
+            tableBorderStyle: TableBorderStyle.clean,
+          ),
+        );
+        final pdf = await engine.exportPdf(
+          prepared,
+          options: const PdfExportOptions(
+            tableBorderStyle: TableBorderStyle.clean,
+            orientation: 'portrait',
+            showSignatures: true,
+            signatureLabels: ['Prepared By', 'Audited By'],
+          ),
+        );
 
-          expect(excel.bytes, isNotEmpty);
-          expect(pdf.bytes, isNotEmpty);
-        }
+        expect(excel.bytes, isNotEmpty);
+        expect(pdf.bytes, isNotEmpty);
       },
     );
 
     test(
-      'Should export multi-sheet categorized deductions to Excel and PDF with signatures',
+      'Should export multi-sheet categorized schedules to Excel and PDF with adaptive signatures',
       () async {
         final deductionsData = [
           {
@@ -292,19 +336,53 @@ void main() {
           },
         ];
 
-        final preset = PayrollReportPresets.categorizedDeductions(
-          companyName: 'Acme Corporation',
+        final def = ReportDefinition<Map<String, dynamic>>(
+          title: 'Deductions & Benefit Schedules',
+          columns: [
+            ReportColumn.text(
+              id: 'employeeId',
+              title: 'Emp ID',
+              value: (m) => m['employeeId'],
+            ),
+            ReportColumn.text(
+              id: 'employeeName',
+              title: 'Employee Name',
+              value: (m) => m['employeeName'],
+            ),
+            ReportColumn.text(
+              id: 'deductionType',
+              title: 'Deduction Type',
+              value: (m) => m['deductionType'],
+            ),
+            ReportColumn.money(
+              id: 'amount',
+              title: 'Amount',
+              currencyCode: 'USD',
+              value: (m) => m['amount'],
+            ),
+          ],
+          analyses: [
+            ReportAnalysis.grouped(
+              id: 'deductions',
+              title: 'Deduction Categories',
+              groupBy: ['deductionType'],
+              sheetPerCategory: true,
+              detailColumns: ['employeeId', 'employeeName', 'amount'],
+              measures: [
+                ReportMeasure.sum(column: 'amount', currencyCode: 'USD'),
+              ],
+            ),
+          ],
         );
 
         final prepared = await engine.prepare(
-          definition: preset,
+          definition: def,
           records: deductionsData,
         );
 
         final excelArtifact = await engine.exportExcel(
           prepared,
           options: const ExcelExportOptions(
-            includeSummarySheet: true,
             showSignatures: true,
             signatureLabels: ['Prepared By', 'Checked By', 'Approved By'],
           ),
@@ -316,14 +394,192 @@ void main() {
             showPageNumbers: true,
             repeatHeaders: true,
             showSignatures: true,
+            signatureLayout: SignatureLayout.adaptive,
+            orientation: 'portrait',
             signatureLabels: ['Prepared By', 'Checked By', 'Approved By'],
           ),
         );
 
         expect(excelArtifact.bytes, isNotEmpty);
         expect(pdfArtifact.bytes, isNotEmpty);
-        expect(excelArtifact.metadata['sheetCount'], greaterThan(2));
+        expect(excelArtifact.metadata['sheetCount'], greaterThan(1));
         expect(pdfArtifact.metadata['pageCount'], greaterThan(0));
+      },
+    );
+
+    test(
+      'chart data selects the configured measure and skips invalid values',
+      () {
+        const analysis = PreparedAnalysis(
+          id: 'hours_by_department',
+          title: 'Hours by Department',
+          type: ReportAnalysisType.grouped,
+          chart: ReportChartConfig(
+            categoryColumn: 'department',
+            measureColumn: 'hours',
+            topN: 2,
+          ),
+          chartMeasureId: 'hours_sum',
+          groups: [
+            PreparedGroup(
+              key: 'engineering',
+              label: 'Engineering',
+              dimension: 'Department',
+              measureValues: {'count': 100, 'hours_sum': 40},
+            ),
+            PreparedGroup(
+              key: 'marketing',
+              label: 'Marketing',
+              dimension: 'Department',
+              measureValues: {'count': 50, 'hours_sum': 'unknown'},
+            ),
+            PreparedGroup(
+              key: 'sales',
+              label: 'Sales',
+              dimension: 'Department',
+              measureValues: {'count': 25, 'hours_sum': 18},
+            ),
+          ],
+        );
+
+        final points = ReportChartData.fromAnalysis(analysis);
+
+        expect(points.map((point) => point.label), ['Engineering', 'Sales']);
+        expect(points.map((point) => point.value), [40, 18]);
+      },
+    );
+
+    test(
+      'prepared chart resolves its source column to the matching measure',
+      () async {
+        final chartDefinition = ReportDefinition<Map<String, dynamic>>(
+          title: 'Revenue by Department',
+          columns: [
+            ReportColumn.text(
+              id: 'department',
+              title: 'Department',
+              value: (record) => record['department'],
+            ),
+            ReportColumn.number(
+              id: 'units',
+              title: 'Units',
+              value: (record) => record['units'],
+            ),
+            ReportColumn.money(
+              id: 'revenue',
+              title: 'Revenue',
+              currencyCode: 'USD',
+              value: (record) => record['revenue'],
+            ),
+          ],
+          analyses: [
+            ReportAnalysis.grouped(
+              id: 'revenue_by_department',
+              title: 'Revenue by Department',
+              groupBy: ['department'],
+              measures: [
+                ReportMeasure.sum(id: 'units_total', column: 'units'),
+                ReportMeasure.sum(
+                  id: 'revenue_total',
+                  column: 'revenue',
+                  currencyCode: 'USD',
+                ),
+              ],
+              chart: const ReportChartConfig(
+                categoryColumn: 'department',
+                measureColumn: 'revenue',
+              ),
+            ),
+          ],
+        );
+        final prepared = await engine.prepare(
+          definition: chartDefinition,
+          records: [
+            {'department': 'Engineering', 'units': 4, 'revenue': 120.0},
+          ],
+        );
+
+        expect(prepared.analyses.single.chartMeasureId, 'revenue_total');
+      },
+    );
+
+    test(
+      'PDF charts render selected values and pie legend is configurable',
+      () async {
+        Future<String> exportChartText(
+          ReportChartType type, {
+          bool showLegend = true,
+          bool showValues = true,
+        }) async {
+          final prepared = PreparedReport(
+            title: 'Chart Test',
+            analyses: [
+              PreparedAnalysis(
+                id: 'hours_by_department',
+                title: 'Hours by Department',
+                type: ReportAnalysisType.grouped,
+                chart: ReportChartConfig(
+                  type: type,
+                  title: 'Consulting Hours',
+                  categoryColumn: 'department',
+                  measureColumn: 'hours',
+                  topN: 2,
+                  showLegend: showLegend,
+                  showValues: showValues,
+                ),
+                chartMeasureId: 'hours_sum',
+                rows: const [PreparedRow(cells: [])],
+                groups: const [
+                  PreparedGroup(
+                    key: 'engineering',
+                    label: 'Engineering',
+                    dimension: 'Department',
+                    measureValues: {'hours_sum': 40},
+                  ),
+                  PreparedGroup(
+                    key: 'sales',
+                    label: 'Sales',
+                    dimension: 'Department',
+                    measureValues: {'hours_sum': 18},
+                  ),
+                ],
+              ),
+            ],
+            totalRecordCount: 2,
+            filteredRecordCount: 2,
+            generatedAt: DateTime(2026, 1, 1),
+            reconciliation: const ReconciliationSummary(isReconciled: true),
+          );
+
+          final artifact = await engine.exportPdf(prepared);
+          final document = PdfDocument(inputBytes: artifact.bytes);
+          try {
+            return PdfTextExtractor(document).extractText();
+          } finally {
+            document.dispose();
+          }
+        }
+
+        for (final type in ReportChartType.values) {
+          final text = await exportChartText(type);
+          expect(text, contains('Consulting Hours'));
+          expect(text, contains('40'));
+          expect(text, contains('18'));
+        }
+
+        final visibleLegend = await exportChartText(ReportChartType.pie);
+        final hiddenLegend = await exportChartText(
+          ReportChartType.pie,
+          showLegend: false,
+        );
+        expect(visibleLegend, contains('Engineering'));
+        expect(hiddenLegend, isNot(contains('Engineering')));
+
+        final hiddenValues = await exportChartText(
+          ReportChartType.bar,
+          showValues: false,
+        );
+        expect(hiddenValues, isNot(contains('40')));
       },
     );
   });

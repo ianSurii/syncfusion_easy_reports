@@ -27,10 +27,7 @@ class EasyReport {
   final ReportDefinition<Map<String, dynamic>> definition;
   final List<Map<String, dynamic>> data;
 
-  const EasyReport._({
-    required this.definition,
-    required this.data,
-  });
+  const EasyReport._({required this.definition, required this.data});
 
   /// Creates an [EasyReport] instance by auto-analyzing and configuring a list of Maps.
   factory EasyReport.fromMaps({
@@ -70,6 +67,17 @@ class EasyReport {
     String? crossTabColumnDimension,
     String? crossTabMeasureColumn,
     bool includeSummaryCard = false,
+    bool includeChart = false,
+    ReportChartConfig? chartConfig,
+
+    // Border & Gridline styling
+    TableBorderStyle tableBorderStyle = TableBorderStyle.clean,
+    bool showGridlines = true,
+    String pdfOrientation = 'portrait',
+
+    // Financial Summaries & Payment Info
+    List<ReportSummaryItem>? summaryItems,
+    ReportPaymentDetails? paymentDetails,
 
     // Signatures & Document Options
     bool showSignatures = false,
@@ -79,6 +87,8 @@ class EasyReport {
       'Approved By',
       'Authorized By',
     ],
+    List<ReportSignature>? signatureBlocks,
+    SignatureLayout signatureLayout = SignatureLayout.adaptive,
     ExcelExportOptions? excelOptions,
     PdfExportOptions? pdfOptions,
     Map<String, dynamic>? metadata,
@@ -112,8 +122,17 @@ class EasyReport {
       crossTabColumnDimension: crossTabColumnDimension,
       crossTabMeasureColumn: crossTabMeasureColumn,
       includeSummaryCard: includeSummaryCard,
+      includeChart: includeChart,
+      chartConfig: chartConfig,
+      tableBorderStyle: tableBorderStyle,
+      showGridlines: showGridlines,
+      pdfOrientation: pdfOrientation,
+      summaryItems: summaryItems,
+      paymentDetails: paymentDetails,
       showSignatures: showSignatures,
       signatures: signatures,
+      signatureBlocks: signatureBlocks,
+      signatureLayout: signatureLayout,
       excelOptions: excelOptions,
       pdfOptions: pdfOptions,
       metadata: metadata,
@@ -160,6 +179,17 @@ class EasyReport {
     String? crossTabColumnDimension,
     String? crossTabMeasureColumn,
     bool includeSummaryCard = false,
+    bool includeChart = false,
+    ReportChartConfig? chartConfig,
+
+    // Border & Gridline styling
+    TableBorderStyle tableBorderStyle = TableBorderStyle.clean,
+    bool showGridlines = true,
+    String pdfOrientation = 'portrait',
+
+    // Financial Summaries & Payment Info
+    List<ReportSummaryItem>? summaryItems,
+    ReportPaymentDetails? paymentDetails,
 
     // Signatures & Document Options
     bool showSignatures = false,
@@ -169,6 +199,8 @@ class EasyReport {
       'Approved By',
       'Authorized By',
     ],
+    List<ReportSignature>? signatureBlocks,
+    SignatureLayout signatureLayout = SignatureLayout.adaptive,
     ExcelExportOptions? excelOptions,
     PdfExportOptions? pdfOptions,
     Map<String, dynamic>? metadata,
@@ -196,12 +228,7 @@ class EasyReport {
 
       if (customType != null) {
         columns.add(
-          _createTypedColumn(
-            key,
-            colTitle,
-            customType,
-            currencyCode,
-          ),
+          _createTypedColumn(key, colTitle, customType, currencyCode),
         );
         continue;
       }
@@ -225,27 +252,15 @@ class EasyReport {
         );
       } else if (_isBooleanKey(key, data)) {
         columns.add(
-          ReportColumn.boolean(
-            id: key,
-            title: colTitle,
-            value: (m) => m[key],
-          ),
+          ReportColumn.boolean(id: key, title: colTitle, value: (m) => m[key]),
         );
       } else if (_isNumericKey(key, data)) {
         columns.add(
-          ReportColumn.number(
-            id: key,
-            title: colTitle,
-            value: (m) => m[key],
-          ),
+          ReportColumn.number(id: key, title: colTitle, value: (m) => m[key]),
         );
       } else {
         columns.add(
-          ReportColumn.text(
-            id: key,
-            title: colTitle,
-            value: (m) => m[key],
-          ),
+          ReportColumn.text(id: key, title: colTitle, value: (m) => m[key]),
         );
       }
     }
@@ -287,7 +302,9 @@ class EasyReport {
           ReportMeasure.sum(
             column: sumKey,
             title: 'Total ${col.title}',
-            currencyCode: col.type == ReportFieldType.money ? currencyCode : null,
+            currencyCode: col.type == ReportFieldType.money
+                ? currencyCode
+                : null,
           ),
         );
       }
@@ -302,7 +319,9 @@ class EasyReport {
             ReportMeasure.average(
               column: avgKey,
               title: 'Avg ${col.title}',
-              currencyCode: col.type == ReportFieldType.money ? currencyCode : null,
+              currencyCode: col.type == ReportFieldType.money
+                  ? currencyCode
+                  : null,
             ),
           );
         }
@@ -326,6 +345,31 @@ class EasyReport {
     // Analysis B: Grouped Aggregation & Category Sheets
     if (includeGroupedSummary && groupByList.isNotEmpty) {
       final groupTitles = groupByList.map((g) => _beautifyTitle(g)).join(' & ');
+      final effectiveChart = includeChart
+          ? (chartConfig ??
+                ReportChartConfig(
+                  title: '$groupTitles Breakdown',
+                  type: ReportChartType.column,
+                  categoryColumn: groupByList[0],
+                  measureColumn:
+                      measures.isNotEmpty && measures[0].column != null
+                      ? measures[0].column!
+                      : (columns.any(
+                              (c) =>
+                                  c.type == ReportFieldType.money ||
+                                  c.type == ReportFieldType.number,
+                            )
+                            ? columns
+                                  .firstWhere(
+                                    (c) =>
+                                        c.type == ReportFieldType.money ||
+                                        c.type == ReportFieldType.number,
+                                  )
+                                  .id
+                            : activeKeys.first),
+                ))
+          : chartConfig;
+
       analyses.add(
         ReportAnalysis.grouped(
           id: 'grouped_summary',
@@ -340,6 +384,7 @@ class EasyReport {
           missingCategoryLabel: missingCategoryLabel,
           showSubtotals: true,
           showGrandTotal: true,
+          chart: effectiveChart,
         ),
       );
     }
@@ -348,14 +393,21 @@ class EasyReport {
     if (includeCrossTab && groupByList.length >= 2) {
       final rDim = crossTabRowDimension ?? groupByList[0];
       final cDim = crossTabColumnDimension ?? groupByList[1];
-      final mKey = crossTabMeasureColumn ??
+      final mKey =
+          crossTabMeasureColumn ??
           (measures.length > 1 && measures[1].column != null
               ? measures[1].column!
               : (columns.any((c) => c.type == ReportFieldType.money)
-                  ? columns.firstWhere((c) => c.type == ReportFieldType.money).id
-                  : (columns.any((c) => c.type == ReportFieldType.number)
-                      ? columns.firstWhere((c) => c.type == ReportFieldType.number).id
-                      : activeKeys.last)));
+                    ? columns
+                          .firstWhere((c) => c.type == ReportFieldType.money)
+                          .id
+                    : (columns.any((c) => c.type == ReportFieldType.number)
+                          ? columns
+                                .firstWhere(
+                                  (c) => c.type == ReportFieldType.number,
+                                )
+                                .id
+                          : activeKeys.last)));
 
       analyses.add(
         ReportAnalysis.crossTab(
@@ -366,7 +418,10 @@ class EasyReport {
           measure: ReportMeasure.sum(
             column: mKey,
             title: _beautifyTitle(mKey),
-            currencyCode: columns.any((c) => c.id == mKey && c.type == ReportFieldType.money)
+            currencyCode:
+                columns.any(
+                  (c) => c.id == mKey && c.type == ReportFieldType.money,
+                )
                 ? currencyCode
                 : null,
           ),
@@ -389,24 +444,39 @@ class EasyReport {
     }
 
     // 6. Branding & Themes
-    final resolvedBranding = branding ??
+    final resolvedBranding =
+        branding ??
         (companyName != null ? ReportBranding(companyName: companyName) : null);
     final resolvedTheme = theme ?? ReportTheme.classicBlue();
 
     // 7. Security & Signature Options
-    final resolvedExcelOpts = excelOptions ??
+    final resolvedExcelOpts =
+        excelOptions ??
         ExcelExportOptions(
           includeSummarySheet: analyses.length > 1,
           showSignatures: showSignatures,
           signatureLabels: signatures,
+          signatures: signatureBlocks,
+          signatureLayout: signatureLayout,
+          tableBorderStyle: tableBorderStyle,
+          showGridlines: showGridlines,
+          summaryItems: summaryItems,
+          paymentDetails: paymentDetails,
         );
 
-    final resolvedPdfOpts = pdfOptions ??
+    final resolvedPdfOpts =
+        pdfOptions ??
         PdfExportOptions(
+          orientation: pdfOrientation,
           showPageNumbers: true,
           repeatHeaders: true,
           showSignatures: showSignatures,
           signatureLabels: signatures,
+          signatures: signatureBlocks,
+          signatureLayout: signatureLayout,
+          tableBorderStyle: tableBorderStyle,
+          summaryItems: summaryItems,
+          paymentDetails: paymentDetails,
         );
 
     return ReportDefinition<Map<String, dynamic>>(
@@ -419,6 +489,8 @@ class EasyReport {
       excelOptions: resolvedExcelOpts,
       pdfOptions: resolvedPdfOpts,
       metadata: metadata,
+      summaryItems: summaryItems,
+      paymentDetails: paymentDetails,
     );
   }
 
@@ -427,22 +499,34 @@ class EasyReport {
   // ===========================================================================
 
   /// Prepares the report for rendering.
-  Future<PreparedReport> prepare() => _engine.prepare(
-        definition: definition,
-        records: data,
-      );
+  Future<PreparedReport> prepare() =>
+      _engine.prepare(definition: definition, records: data);
 
   /// Generates Excel OpenXML (.xlsx) artifact bytes.
   Future<ReportArtifact> toExcel({ExcelExportOptions? options}) async {
     final prepared = await prepare();
-    return _engine.exportExcel(prepared, options: options ?? definition.excelOptions);
+    return _engine.exportExcel(
+      prepared,
+      options: options ?? definition.excelOptions,
+    );
   }
+
+  /// Alias for [toExcel].
+  Future<ReportArtifact> exportExcel({ExcelExportOptions? options}) =>
+      toExcel(options: options);
 
   /// Generates Adobe PDF (.pdf) artifact bytes.
   Future<ReportArtifact> toPdf({PdfExportOptions? options}) async {
     final prepared = await prepare();
-    return _engine.exportPdf(prepared, options: options ?? definition.pdfOptions);
+    return _engine.exportPdf(
+      prepared,
+      options: options ?? definition.pdfOptions,
+    );
   }
+
+  /// Alias for [toPdf].
+  Future<ReportArtifact> exportPdf({PdfExportOptions? options}) =>
+      toPdf(options: options);
 
   /// Generates and automatically downloads/saves the Excel workbook.
   Future<void> saveExcel({ExcelExportOptions? options}) async {
@@ -521,11 +605,7 @@ class EasyReport {
           value: (m) => m[key],
         );
       case ReportFieldType.number:
-        return ReportColumn.number(
-          id: key,
-          title: title,
-          value: (m) => m[key],
-        );
+        return ReportColumn.number(id: key, title: title, value: (m) => m[key]);
       case ReportFieldType.date:
         return ReportColumn.date(
           id: key,
@@ -552,11 +632,7 @@ class EasyReport {
         );
       case ReportFieldType.text:
       case ReportFieldType.custom:
-        return ReportColumn.text(
-          id: key,
-          title: title,
-          value: (m) => m[key],
-        );
+        return ReportColumn.text(id: key, title: title, value: (m) => m[key]);
     }
   }
 
@@ -573,7 +649,8 @@ class EasyReport {
       return false;
     }
 
-    final hasMoneyKeyword = lower.contains('salary') ||
+    final hasMoneyKeyword =
+        lower.contains('salary') ||
         lower.contains('pay') ||
         lower.contains('amount') ||
         lower.contains('cost') ||
@@ -620,7 +697,10 @@ class EasyReport {
 
   static bool _isDateKey(String key, List<Map<String, dynamic>> data) {
     final lower = key.toLowerCase();
-    if (lower.contains('date') || lower.contains('joined') || lower.contains('time') || lower == 'dob') {
+    if (lower.contains('date') ||
+        lower.contains('joined') ||
+        lower.contains('time') ||
+        lower == 'dob') {
       return true;
     }
     for (final row in data) {
@@ -662,14 +742,16 @@ class EasyReport {
         .trim();
 
     final words = withSpaces.split(RegExp(r'\s+'));
-    return words.map((w) {
-      if (w.isEmpty) return '';
-      if (w.toLowerCase() == 'id') return 'ID';
-      if (w.toLowerCase() == 'sku') return 'SKU';
-      if (w.toLowerCase() == 'kpi') return 'KPI';
-      if (w.toLowerCase() == 'ar') return 'AR';
-      if (w.toLowerCase() == 'ap') return 'AP';
-      return w[0].toUpperCase() + w.substring(1);
-    }).join(' ');
+    return words
+        .map((w) {
+          if (w.isEmpty) return '';
+          if (w.toLowerCase() == 'id') return 'ID';
+          if (w.toLowerCase() == 'sku') return 'SKU';
+          if (w.toLowerCase() == 'kpi') return 'KPI';
+          if (w.toLowerCase() == 'ar') return 'AR';
+          if (w.toLowerCase() == 'ap') return 'AP';
+          return w[0].toUpperCase() + w.substring(1);
+        })
+        .join(' ');
   }
 }

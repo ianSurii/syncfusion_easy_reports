@@ -1,4 +1,5 @@
 import 'dart:io' show File;
+import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect;
 import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import 'package:flutter/services.dart' show ByteData, rootBundle;
@@ -518,34 +519,29 @@ class PdfReportGenerator {
     if (branding == null) return;
 
     final double width = document.pageSettings.size.width;
-    final PdfPageTemplateElement header = PdfPageTemplateElement(
-      Rect.fromLTWH(0, 0, width, 85),
-    );
+    final bool hasLogo = branding.logoBytes != null;
+    final double logoW = (branding.logoWidth ?? 60).toDouble();
+    final double logoH = (branding.logoHeight ?? 50).toDouble();
 
-    // Draw logo image
-    if (branding.logoBytes != null) {
+    PdfBitmap? logoImage;
+    if (hasLogo) {
       try {
-        final PdfBitmap image = PdfBitmap(
-          Uint8List.fromList(branding.logoBytes!),
-        );
-        header.graphics.drawImage(
-          image,
-          Rect.fromLTWH(
-            0,
-            0,
-            (branding.logoWidth ?? 60).toDouble(),
-            (branding.logoHeight ?? 60).toDouble(),
-          ),
-        );
+        logoImage = PdfBitmap(Uint8List.fromList(branding.logoBytes!));
       } catch (e) {
         _log.warning('Failed to render logo bitmap in PDF: $e');
       }
     }
 
-    double textX = branding.logoBytes != null
-        ? (branding.logoWidth ?? 60) + 15
-        : 0;
-    double y = 0;
+    double templateHeight = 75;
+    if (hasLogo && branding.layout == BrandingLayout.stacked) {
+      templateHeight = logoH + 55;
+    } else if (hasLogo) {
+      templateHeight = math.max(logoH, 45) + 25;
+    }
+
+    final PdfPageTemplateElement header = PdfPageTemplateElement(
+      Rect.fromLTWH(0, 0, width, templateHeight),
+    );
 
     final bodyFont = PdfStandardFont(
       PdfFontFamily.helvetica,
@@ -555,45 +551,135 @@ class PdfReportGenerator {
       theme.primaryColor,
       PdfColor(21, 101, 192),
     );
+    final titleFont = PdfStandardFont(
+      PdfFontFamily.helvetica,
+      theme.fontSizeHeader + 2,
+      style: PdfFontStyle.bold,
+    );
 
-    if (branding.companyName != null) {
-      header.graphics.drawString(
-        branding.companyName!,
-        PdfStandardFont(
-          PdfFontFamily.helvetica,
-          theme.fontSizeHeader + 3,
-          style: PdfFontStyle.bold,
-        ),
-        brush: PdfSolidBrush(compColor),
-        bounds: Rect.fromLTWH(textX, y, width - textX, 20),
-      );
-      y += 18;
-    }
+    switch (branding.layout) {
+      case BrandingLayout.stacked:
+        double y = 0;
+        if (logoImage != null) {
+          header.graphics.drawImage(
+            logoImage,
+            Rect.fromLTWH(0, y, logoW, logoH),
+          );
+          y += logoH + 6;
+        }
+        if (branding.companyName != null) {
+          header.graphics.drawString(
+            branding.companyName!,
+            titleFont,
+            brush: PdfSolidBrush(compColor),
+            bounds: Rect.fromLTWH(0, y, width, 18),
+          );
+          y += 16;
+        }
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          header.graphics.drawString(
+            branding.address!,
+            bodyFont,
+            bounds: Rect.fromLTWH(0, y, width, 14),
+          );
+          y += 12;
+        }
+        if (branding.email != null || branding.phone != null) {
+          final contacts = [
+            if (branding.phone != null) 'Phone: ${branding.phone}',
+            if (branding.email != null) 'Email: ${branding.email}',
+          ].join(' | ');
+          header.graphics.drawString(
+            contacts,
+            bodyFont,
+            bounds: Rect.fromLTWH(0, y, width, 13),
+          );
+          y += 12;
+        }
+        break;
 
-    if (branding.address != null) {
-      header.graphics.drawString(
-        branding.address!,
-        bodyFont,
-        bounds: Rect.fromLTWH(textX, y, width - textX, 15),
-      );
-      y += 13;
-    }
+      case BrandingLayout.sideBySide:
+        double textX = 0;
+        if (logoImage != null) {
+          header.graphics.drawImage(
+            logoImage,
+            Rect.fromLTWH(0, 0, logoW, logoH),
+          );
+          textX = logoW + 15;
+        }
+        double y = 0;
+        if (branding.companyName != null) {
+          header.graphics.drawString(
+            branding.companyName!,
+            titleFont,
+            brush: PdfSolidBrush(compColor),
+            bounds: Rect.fromLTWH(textX, y, width - textX, 18),
+          );
+          y += 18;
+        }
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          header.graphics.drawString(
+            branding.address!,
+            bodyFont,
+            bounds: Rect.fromLTWH(textX, y, width - textX, 14),
+          );
+          y += 13;
+        }
+        if (branding.email != null) {
+          header.graphics.drawString(
+            'Email: ${branding.email}',
+            bodyFont,
+            bounds: Rect.fromLTWH(textX, y, width - textX, 13),
+          );
+          y += 12;
+        }
+        if (branding.phone != null) {
+          header.graphics.drawString(
+            'Phone: ${branding.phone}',
+            bodyFont,
+            bounds: Rect.fromLTWH(textX, y, width - textX, 13),
+          );
+        }
+        break;
 
-    if (branding.email != null) {
-      header.graphics.drawString(
-        'Email: ${branding.email}',
-        bodyFont,
-        bounds: Rect.fromLTWH(textX, y, width - textX, 15),
-      );
-      y += 13;
-    }
-
-    if (branding.phone != null) {
-      header.graphics.drawString(
-        'Phone: ${branding.phone}',
-        bodyFont,
-        bounds: Rect.fromLTWH(textX, y, width - textX, 15),
-      );
+      case BrandingLayout.topRightLogo:
+        if (logoImage != null) {
+          header.graphics.drawImage(
+            logoImage,
+            Rect.fromLTWH(width - logoW, 0, logoW, logoH),
+          );
+        }
+        double y = 0;
+        final maxTextWidth = width - (logoImage != null ? logoW + 20 : 0);
+        if (branding.companyName != null) {
+          header.graphics.drawString(
+            branding.companyName!,
+            titleFont,
+            brush: PdfSolidBrush(compColor),
+            bounds: Rect.fromLTWH(0, y, maxTextWidth, 18),
+          );
+          y += 18;
+        }
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          header.graphics.drawString(
+            branding.address!,
+            bodyFont,
+            bounds: Rect.fromLTWH(0, y, maxTextWidth, 14),
+          );
+          y += 13;
+        }
+        if (branding.email != null || branding.phone != null) {
+          final contacts = [
+            if (branding.phone != null) 'Phone: ${branding.phone}',
+            if (branding.email != null) 'Email: ${branding.email}',
+          ].join(' | ');
+          header.graphics.drawString(
+            contacts,
+            bodyFont,
+            bounds: Rect.fromLTWH(0, y, maxTextWidth, 13),
+          );
+        }
+        break;
     }
 
     document.template.top = header;

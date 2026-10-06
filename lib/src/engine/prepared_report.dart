@@ -178,6 +178,8 @@ class PreparedAnalysis {
   final List<PreparedCategorySheet>? categorySheets;
   final Map<String, dynamic> summaryMetrics;
   final int recordCount;
+  final ReportChartConfig? chart;
+  final String? chartMeasureId;
 
   const PreparedAnalysis({
     required this.id,
@@ -192,6 +194,8 @@ class PreparedAnalysis {
     this.categorySheets,
     this.summaryMetrics = const {},
     this.recordCount = 0,
+    this.chart,
+    this.chartMeasureId,
   });
 }
 
@@ -253,6 +257,12 @@ class PreparedReport {
   /// Custom report metadata.
   final Map<String, dynamic> metadata;
 
+  /// Optional financial summary items (subtotal, taxes, total, balance due).
+  final List<ReportSummaryItem>? summaryItems;
+
+  /// Optional payment / bank remittance details.
+  final ReportPaymentDetails? paymentDetails;
+
   PreparedReport({
     required this.title,
     this.subtitle,
@@ -267,6 +277,8 @@ class PreparedReport {
     this.warnings = const [],
     required this.reconciliation,
     this.metadata = const {},
+    this.summaryItems,
+    this.paymentDetails,
   }) : theme = theme ?? ReportTheme.classicBlue(),
        settings = settings ?? ReportSettings(),
        generatedAt = generatedAt ?? DateTime.now();

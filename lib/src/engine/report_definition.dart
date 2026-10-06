@@ -38,6 +38,12 @@ class ReportDefinition<T> {
   /// Optional arbitrary metadata (e.g. author, system version, environment).
   final Map<String, dynamic>? metadata;
 
+  /// Optional bottom financial summaries (Subtotal, Taxes, Total, Balance Due).
+  final List<ReportSummaryItem>? summaryItems;
+
+  /// Optional wire payment / bank remittance details and terms printed below the table.
+  final ReportPaymentDetails? paymentDetails;
+
   const ReportDefinition({
     required this.title,
     this.subtitle,
@@ -49,6 +55,8 @@ class ReportDefinition<T> {
     this.excelOptions,
     this.pdfOptions,
     this.metadata,
+    this.summaryItems,
+    this.paymentDetails,
   });
 
   /// Finds a column definition by its unique [id].

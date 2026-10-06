@@ -11,6 +11,7 @@ import '../engine/report_options.dart';
 import '../engine/report_artifact.dart';
 import '../engine/report_column.dart';
 import '../models/report_models.dart';
+import 'report_chart_data.dart';
 
 /// Renders a [PreparedReport] into an Excel OpenXML (.xlsx) document.
 class ExcelReportExporter {
@@ -69,7 +70,7 @@ class ExcelReportExporter {
           if (sheetIndex == 0) sheet.name = sheetName;
           sheetIndex++;
 
-          _renderCategorySheet(sheet, catSheet, branding, theme, opts);
+          _renderCategorySheet(sheet, catSheet, branding, theme, opts, report);
         }
       } else {
         final sheetName = _uniqueSheetName(
@@ -83,7 +84,7 @@ class ExcelReportExporter {
         if (sheetIndex == 0) sheet.name = sheetName;
         sheetIndex++;
 
-        _renderAnalysisSheet(sheet, analysis, branding, theme, opts);
+        _renderAnalysisSheet(sheet, analysis, branding, theme, opts, report);
       }
     }
 
@@ -125,12 +126,19 @@ class ExcelReportExporter {
     ReportBranding? branding,
     ReportTheme theme,
     ExcelExportOptions options,
+    PreparedReport report,
   ) {
     int currentRow = 1;
 
     // 1. Branding Header
     if (branding != null) {
-      currentRow = _renderBranding(sheet, branding, theme, currentRow);
+      currentRow = _renderBranding(
+        sheet,
+        branding,
+        theme,
+        currentRow,
+        colCount: analysis.headers.length,
+      );
       currentRow += 2;
     }
 
@@ -158,23 +166,46 @@ class ExcelReportExporter {
       final h = analysis.headers[col];
       final cell = sheet.getRangeByIndex(currentRow, col + 1);
       cell.setText(h.title);
+      cell.cellStyle.fontName = theme.fontFamily;
       cell.cellStyle.bold = true;
       cell.cellStyle.fontSize = theme.fontSizeHeader;
       cell.cellStyle.backColor = theme.headerBackgroundColor;
       cell.cellStyle.fontColor = theme.headerTextColor;
       cell.cellStyle.hAlign = _toExcelAlign(h.alignment);
       cell.cellStyle.vAlign = VAlignType.center;
-      cell.cellStyle.borders.all.lineStyle = LineStyle.thin;
-      cell.cellStyle.borders.all.color = theme.accentColor;
+
+      switch (options.tableBorderStyle) {
+        case TableBorderStyle.grid:
+          cell.cellStyle.borders.all.lineStyle = LineStyle.thin;
+          cell.cellStyle.borders.all.color = theme.accentColor;
+          break;
+        case TableBorderStyle.clean:
+        case TableBorderStyle.horizontalOnly:
+        case TableBorderStyle.headerAndTotalOnly:
+          cell.cellStyle.borders.bottom.lineStyle = LineStyle.medium;
+          cell.cellStyle.borders.bottom.color = theme.accentColor;
+          break;
+        case TableBorderStyle.none:
+          break;
+      }
     }
     currentRow++;
 
     // 4. Data Rows
     for (int r = 0; r < analysis.rows.length; r++) {
       final row = analysis.rows[r];
-      _renderRow(sheet, row, analysis.headers, theme, currentRow, r % 2 == 0);
+      _renderRow(
+        sheet,
+        row,
+        analysis.headers,
+        theme,
+        currentRow,
+        r % 2 == 0,
+        borderStyle: options.tableBorderStyle,
+      );
       currentRow++;
     }
+    final int dataEndRow = math.max(tableStartRow, currentRow - 1);
 
     // 5. Grand Total Row
     if (analysis.grandTotalRow != null) {
@@ -185,11 +216,25 @@ class ExcelReportExporter {
         theme,
         currentRow,
         tableStartRow,
+        borderStyle: options.tableBorderStyle,
       );
       currentRow++;
     }
 
-    // 6. Summary metrics at bottom if present
+    // 6. Chart Visual Distribution if configured
+    if (analysis.chart != null) {
+      currentRow += 2;
+      currentRow = _renderChartSummaryBlock(
+        sheet: sheet,
+        chart: analysis.chart!,
+        analysis: analysis,
+        theme: theme,
+        startRow: currentRow,
+        totalCols: analysis.headers.length,
+      );
+    }
+
+    // 7. Summary metrics at bottom if present
     if (analysis.summaryMetrics.isNotEmpty) {
       currentRow += 2;
       currentRow = _renderSummaryCards(
@@ -200,24 +245,41 @@ class ExcelReportExporter {
       );
     }
 
-    // 7. Signature blocks if requested
-    if (options.showSignatures && options.signatureLabels.isNotEmpty) {
+    // 8. Bottom Financial Summaries & Payment / Bank Details
+    final summaryItems = options.summaryItems ?? report.summaryItems;
+    final paymentDetails = options.paymentDetails ?? report.paymentDetails;
+    if ((summaryItems != null && summaryItems.isNotEmpty) ||
+        paymentDetails != null) {
       currentRow += 2;
+      currentRow = _renderSummaryAndPaymentBlock(
+        sheet: sheet,
+        startRow: currentRow,
+        colCount: analysis.headers.length,
+        summaryItems: summaryItems,
+        paymentDetails: paymentDetails,
+        theme: theme,
+      );
+    }
+
+    // 9. Signature blocks if requested (separated from table)
+    if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+      currentRow += 3;
       currentRow = _renderSignatures(
         sheet,
-        options.signatureLabels,
+        options.effectiveSignatures,
+        options.signatureLayout,
         theme,
         currentRow,
         analysis.headers.length,
       );
     }
 
-    // 8. Auto-fit and formatting constraints
+    // 10. Auto-fit and formatting constraints (strictly bounded to data rows)
     _finalizeSheetLayout(
       sheet,
       analysis.headers.length,
-      currentRow,
       tableStartRow,
+      dataEndRow,
       options,
     );
   }
@@ -228,11 +290,18 @@ class ExcelReportExporter {
     ReportBranding? branding,
     ReportTheme theme,
     ExcelExportOptions options,
+    PreparedReport report,
   ) {
     int currentRow = 1;
 
     if (branding != null) {
-      currentRow = _renderBranding(sheet, branding, theme, currentRow);
+      currentRow = _renderBranding(
+        sheet,
+        branding,
+        theme,
+        currentRow,
+        colCount: catSheet.headers.length,
+      );
       currentRow += 2;
     }
 
@@ -250,22 +319,45 @@ class ExcelReportExporter {
       final h = catSheet.headers[col];
       final cell = sheet.getRangeByIndex(currentRow, col + 1);
       cell.setText(h.title);
+      cell.cellStyle.fontName = theme.fontFamily;
       cell.cellStyle.bold = true;
       cell.cellStyle.fontSize = theme.fontSizeHeader;
       cell.cellStyle.backColor = theme.headerBackgroundColor;
       cell.cellStyle.fontColor = theme.headerTextColor;
       cell.cellStyle.hAlign = _toExcelAlign(h.alignment);
-      cell.cellStyle.borders.all.lineStyle = LineStyle.thin;
-      cell.cellStyle.borders.all.color = theme.accentColor;
+
+      switch (options.tableBorderStyle) {
+        case TableBorderStyle.grid:
+          cell.cellStyle.borders.all.lineStyle = LineStyle.thin;
+          cell.cellStyle.borders.all.color = theme.accentColor;
+          break;
+        case TableBorderStyle.clean:
+        case TableBorderStyle.horizontalOnly:
+        case TableBorderStyle.headerAndTotalOnly:
+          cell.cellStyle.borders.bottom.lineStyle = LineStyle.medium;
+          cell.cellStyle.borders.bottom.color = theme.accentColor;
+          break;
+        case TableBorderStyle.none:
+          break;
+      }
     }
     currentRow++;
 
     // Rows
     for (int r = 0; r < catSheet.rows.length; r++) {
       final row = catSheet.rows[r];
-      _renderRow(sheet, row, catSheet.headers, theme, currentRow, r % 2 == 0);
+      _renderRow(
+        sheet,
+        row,
+        catSheet.headers,
+        theme,
+        currentRow,
+        r % 2 == 0,
+        borderStyle: options.tableBorderStyle,
+      );
       currentRow++;
     }
+    final int dataEndRow = math.max(tableStartRow, currentRow - 1);
 
     // Totals
     if (catSheet.totalsRow != null) {
@@ -276,16 +368,34 @@ class ExcelReportExporter {
         theme,
         currentRow,
         tableStartRow,
+        borderStyle: options.tableBorderStyle,
       );
       currentRow++;
     }
 
-    // Signatures if requested
-    if (options.showSignatures && options.signatureLabels.isNotEmpty) {
+    // Bottom Financial Summaries & Payment / Bank Details
+    final summaryItems = options.summaryItems ?? report.summaryItems;
+    final paymentDetails = options.paymentDetails ?? report.paymentDetails;
+    if ((summaryItems != null && summaryItems.isNotEmpty) ||
+        paymentDetails != null) {
       currentRow += 2;
+      currentRow = _renderSummaryAndPaymentBlock(
+        sheet: sheet,
+        startRow: currentRow,
+        colCount: catSheet.headers.length,
+        summaryItems: summaryItems,
+        paymentDetails: paymentDetails,
+        theme: theme,
+      );
+    }
+
+    // Signatures if requested
+    if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+      currentRow += 3;
       currentRow = _renderSignatures(
         sheet,
-        options.signatureLabels,
+        options.effectiveSignatures,
+        options.signatureLayout,
         theme,
         currentRow,
         catSheet.headers.length,
@@ -295,8 +405,8 @@ class ExcelReportExporter {
     _finalizeSheetLayout(
       sheet,
       catSheet.headers.length,
-      currentRow,
       tableStartRow,
+      dataEndRow,
       options,
     );
   }
@@ -307,11 +417,13 @@ class ExcelReportExporter {
     List<PreparedColumnHeader> headers,
     ReportTheme theme,
     int rowIndex,
-    bool isEven,
-  ) {
+    bool isEven, {
+    TableBorderStyle borderStyle = TableBorderStyle.clean,
+  }) {
     if (row.isGroupHeader) {
       final cell = sheet.getRangeByIndex(rowIndex, 1);
       cell.setText(row.cells.isNotEmpty ? row.cells[0].formattedText : '');
+      cell.cellStyle.fontName = theme.fontFamily;
       cell.cellStyle.bold = true;
       cell.cellStyle.fontSize = theme.fontSizeHeader;
       cell.cellStyle.backColor = theme.groupHeaderBackgroundColor;
@@ -334,11 +446,14 @@ class ExcelReportExporter {
         final cell = sheet.getRangeByIndex(rowIndex, c + 1);
         final pCell = row.cells[c];
         _setCellVal(cell, pCell, headers[c]);
+        cell.cellStyle.fontName = theme.fontFamily;
         cell.cellStyle.bold = true;
         cell.cellStyle.backColor = theme.groupHeaderBackgroundColor;
         cell.cellStyle.fontColor = theme.groupHeaderTextColor;
-        cell.cellStyle.borders.top.lineStyle = LineStyle.thin;
-        cell.cellStyle.borders.bottom.lineStyle = LineStyle.thin;
+        if (borderStyle != TableBorderStyle.none) {
+          cell.cellStyle.borders.top.lineStyle = LineStyle.thin;
+          cell.cellStyle.borders.bottom.lineStyle = LineStyle.thin;
+        }
       }
       return;
     }
@@ -348,11 +463,26 @@ class ExcelReportExporter {
       final pCell = row.cells[c];
       _setCellVal(cell, pCell, headers[c]);
 
+      cell.cellStyle.fontName = theme.fontFamily;
+      cell.cellStyle.fontSize = theme.fontSizeBody;
       cell.cellStyle.backColor = isEven
           ? theme.zebraLightColor
           : theme.zebraDarkColor;
-      cell.cellStyle.borders.all.lineStyle = LineStyle.thin;
-      cell.cellStyle.borders.all.color = theme.borderColor;
+
+      switch (borderStyle) {
+        case TableBorderStyle.grid:
+          cell.cellStyle.borders.all.lineStyle = LineStyle.thin;
+          cell.cellStyle.borders.all.color = theme.borderColor;
+          break;
+        case TableBorderStyle.horizontalOnly:
+          cell.cellStyle.borders.bottom.lineStyle = LineStyle.thin;
+          cell.cellStyle.borders.bottom.color = theme.borderColor;
+          break;
+        case TableBorderStyle.clean:
+        case TableBorderStyle.headerAndTotalOnly:
+        case TableBorderStyle.none:
+          break;
+      }
     }
   }
 
@@ -362,19 +492,38 @@ class ExcelReportExporter {
     List<PreparedColumnHeader> headers,
     ReportTheme theme,
     int rowIndex,
-    int tableStartRow,
-  ) {
+    int tableStartRow, {
+    TableBorderStyle borderStyle = TableBorderStyle.clean,
+  }) {
     for (int c = 0; c < totalRow.cells.length && c < headers.length; c++) {
       final cell = sheet.getRangeByIndex(rowIndex, c + 1);
       final pCell = totalRow.cells[c];
       _setCellVal(cell, pCell, headers[c]);
 
+      cell.cellStyle.fontName = theme.fontFamily;
+      cell.cellStyle.fontSize = theme.fontSizeTotals;
       cell.cellStyle.bold = true;
       cell.cellStyle.backColor = theme.totalsBackgroundColor;
       cell.cellStyle.fontColor = theme.totalsTextColor;
-      cell.cellStyle.borders.top.lineStyle = LineStyle.thin;
-      cell.cellStyle.borders.bottom.lineStyle = LineStyle.double;
-      cell.cellStyle.borders.bottom.color = theme.accentColor;
+
+      switch (borderStyle) {
+        case TableBorderStyle.grid:
+          cell.cellStyle.borders.all.lineStyle = LineStyle.thin;
+          cell.cellStyle.borders.all.color = theme.borderColor;
+          cell.cellStyle.borders.bottom.lineStyle = LineStyle.double;
+          cell.cellStyle.borders.bottom.color = theme.accentColor;
+          break;
+        case TableBorderStyle.clean:
+        case TableBorderStyle.horizontalOnly:
+        case TableBorderStyle.headerAndTotalOnly:
+          cell.cellStyle.borders.top.lineStyle = LineStyle.thin;
+          cell.cellStyle.borders.top.color = theme.borderColor;
+          cell.cellStyle.borders.bottom.lineStyle = LineStyle.double;
+          cell.cellStyle.borders.bottom.color = theme.accentColor;
+          break;
+        case TableBorderStyle.none:
+          break;
+      }
     }
   }
 
@@ -445,49 +594,206 @@ class ExcelReportExporter {
     Worksheet sheet,
     ReportBranding branding,
     ReportTheme theme,
-    int startRow,
-  ) {
-    int row = startRow;
+    int startRow, {
+    int colCount = 4,
+  }) {
+    final bool hasLogo =
+        branding.logoBytes != null && branding.logoBytes!.isNotEmpty;
+    final double logoHeight = (branding.logoHeight ?? 50).toDouble();
+    final double logoWidth = (branding.logoWidth ?? 90).toDouble();
 
-    if (branding.logoBytes != null && branding.logoBytes!.isNotEmpty) {
-      try {
-        final Picture picture = sheet.pictures.addStream(
-          row,
-          1,
-          branding.logoBytes!,
-        );
-        picture.height = (branding.logoHeight ?? 60).toInt();
-        picture.width = (branding.logoWidth ?? 120).toInt();
-        row += 4;
-      } catch (e) {
-        _log.warning('Excel picture render exception: $e');
+    // Excel default row height is ~15-18pt.
+    // Calculate the rows spanned by the logo with generous safe padding.
+    final int logoRows = (logoHeight / 17.0).ceil() + 1;
+
+    int textRows = 0;
+    if (branding.companyName != null) textRows++;
+    if (branding.address != null && branding.address!.isNotEmpty) textRows++;
+    if (branding.phone != null || branding.email != null) textRows++;
+
+    if (!hasLogo) {
+      int r = startRow;
+      if (branding.companyName != null) {
+        final cell = sheet.getRangeByIndex(r, 1);
+        cell.setText(branding.companyName!);
+        cell.cellStyle.fontSize = 15;
+        cell.cellStyle.bold = true;
+        cell.cellStyle.fontColor = theme.primaryColor;
+        r++;
       }
+      if (branding.address != null && branding.address!.isNotEmpty) {
+        final cell = sheet.getRangeByIndex(r, 1);
+        cell.setText(branding.address!);
+        cell.cellStyle.fontSize = 10;
+        cell.cellStyle.fontColor = '#555555';
+        r++;
+      }
+      if (branding.phone != null || branding.email != null) {
+        final contacts = [
+          if (branding.phone != null) 'Tel: ${branding.phone}',
+          if (branding.email != null) 'Email: ${branding.email}',
+        ].join(' | ');
+        final cell = sheet.getRangeByIndex(r, 1);
+        cell.setText(contacts);
+        cell.cellStyle.fontSize = 9.5;
+        cell.cellStyle.fontColor = '#777777';
+        r++;
+      }
+      return r;
     }
 
-    if (branding.companyName != null) {
-      final nameCell = sheet.getRangeByIndex(row, 1);
-      nameCell.setText(branding.companyName!);
-      nameCell.cellStyle.fontSize = 16;
-      nameCell.cellStyle.bold = true;
-      nameCell.cellStyle.fontColor = theme.primaryColor;
-      row++;
-    }
+    switch (branding.layout) {
+      case BrandingLayout.stacked:
+        // 1. Draw logo at top (startRow, 1)
+        try {
+          final Picture picture = sheet.pictures.addStream(
+            startRow,
+            1,
+            branding.logoBytes!,
+          );
+          picture.height = logoHeight.toInt();
+          picture.width = logoWidth.toInt();
+        } catch (e) {
+          _log.warning('Excel picture render exception: $e');
+        }
 
-    if (branding.address != null) {
-      sheet.getRangeByIndex(row, 1).setText(branding.address!);
-      row++;
-    }
+        // 2. Set safe starting row cleanly below the logo
+        int r = startRow + logoRows + 1;
 
-    if (branding.phone != null || branding.email != null) {
-      final contacts = [
-        if (branding.phone != null) 'Tel: ${branding.phone}',
-        if (branding.email != null) 'Email: ${branding.email}',
-      ].join(' | ');
-      sheet.getRangeByIndex(row, 1).setText(contacts);
-      row++;
-    }
+        if (branding.companyName != null) {
+          final nameCell = sheet.getRangeByIndex(r, 1);
+          nameCell.setText(branding.companyName!);
+          nameCell.cellStyle.fontSize = 15;
+          nameCell.cellStyle.bold = true;
+          nameCell.cellStyle.fontColor = theme.primaryColor;
+          r++;
+        }
 
-    return row;
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          final addrCell = sheet.getRangeByIndex(r, 1);
+          addrCell.setText(branding.address!);
+          addrCell.cellStyle.fontSize = 10;
+          addrCell.cellStyle.fontColor = '#555555';
+          r++;
+        }
+
+        if (branding.phone != null || branding.email != null) {
+          final contacts = [
+            if (branding.phone != null) 'Tel: ${branding.phone}',
+            if (branding.email != null) 'Email: ${branding.email}',
+          ].join(' | ');
+          final contactCell = sheet.getRangeByIndex(r, 1);
+          contactCell.setText(contacts);
+          contactCell.cellStyle.fontSize = 9.5;
+          contactCell.cellStyle.fontColor = '#777777';
+          r++;
+        }
+        return r;
+
+      case BrandingLayout.sideBySide:
+        // Logo in Column 1 (Left), Company details in Column 2 (Right)
+        try {
+          final Picture picture = sheet.pictures.addStream(
+            startRow,
+            1,
+            branding.logoBytes!,
+          );
+          picture.height = logoHeight.toInt();
+          picture.width = logoWidth.toInt();
+        } catch (e) {
+          _log.warning('Excel picture render exception: $e');
+        }
+
+        // Ensure Column 1 accommodates logo width without bleeding into Column 2
+        try {
+          final colWidthInChars = (logoWidth / 6.5) + 3.0;
+          final col = sheet.columns[0];
+          if (col != null && col.width < colWidthInChars) {
+            col.width = colWidthInChars;
+          }
+        } catch (_) {}
+
+        int textRow = startRow;
+        if (branding.companyName != null) {
+          final nameCell = sheet.getRangeByIndex(textRow, 2);
+          nameCell.setText(branding.companyName!);
+          nameCell.cellStyle.fontSize = 15;
+          nameCell.cellStyle.bold = true;
+          nameCell.cellStyle.fontColor = theme.primaryColor;
+          textRow++;
+        }
+
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          final addrCell = sheet.getRangeByIndex(textRow, 2);
+          addrCell.setText(branding.address!);
+          addrCell.cellStyle.fontSize = 10;
+          addrCell.cellStyle.fontColor = '#555555';
+          textRow++;
+        }
+
+        if (branding.phone != null || branding.email != null) {
+          final contacts = [
+            if (branding.phone != null) 'Tel: ${branding.phone}',
+            if (branding.email != null) 'Email: ${branding.email}',
+          ].join(' | ');
+          final contactCell = sheet.getRangeByIndex(textRow, 2);
+          contactCell.setText(contacts);
+          contactCell.cellStyle.fontSize = 9.5;
+          contactCell.cellStyle.fontColor = '#777777';
+          textRow++;
+        }
+
+        final maxSpan = math.max(logoRows, textRows);
+        return startRow + maxSpan + 1;
+
+      case BrandingLayout.topRightLogo:
+        // Text in Column 1, Logo on the top-right column
+        int textRow = startRow;
+        if (branding.companyName != null) {
+          final nameCell = sheet.getRangeByIndex(textRow, 1);
+          nameCell.setText(branding.companyName!);
+          nameCell.cellStyle.fontSize = 15;
+          nameCell.cellStyle.bold = true;
+          nameCell.cellStyle.fontColor = theme.primaryColor;
+          textRow++;
+        }
+
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          final addrCell = sheet.getRangeByIndex(textRow, 1);
+          addrCell.setText(branding.address!);
+          addrCell.cellStyle.fontSize = 10;
+          addrCell.cellStyle.fontColor = '#555555';
+          textRow++;
+        }
+
+        if (branding.phone != null || branding.email != null) {
+          final contacts = [
+            if (branding.phone != null) 'Tel: ${branding.phone}',
+            if (branding.email != null) 'Email: ${branding.email}',
+          ].join(' | ');
+          final contactCell = sheet.getRangeByIndex(textRow, 1);
+          contactCell.setText(contacts);
+          contactCell.cellStyle.fontSize = 9.5;
+          contactCell.cellStyle.fontColor = '#777777';
+          textRow++;
+        }
+
+        final int rightCol = math.max(3, colCount);
+        try {
+          final Picture picture = sheet.pictures.addStream(
+            startRow,
+            rightCol,
+            branding.logoBytes!,
+          );
+          picture.height = logoHeight.toInt();
+          picture.width = logoWidth.toInt();
+        } catch (e) {
+          _log.warning('Excel picture render exception: $e');
+        }
+
+        final maxSpan = math.max(logoRows, textRows);
+        return startRow + maxSpan + 1;
+    }
   }
 
   int _renderSummaryCards(
@@ -521,32 +827,400 @@ class ExcelReportExporter {
     return row;
   }
 
+  int _renderChartSummaryBlock({
+    required Worksheet sheet,
+    required ReportChartConfig chart,
+    required PreparedAnalysis analysis,
+    required ReportTheme theme,
+    required int startRow,
+    required int totalCols,
+  }) {
+    final points = ReportChartData.fromAnalysis(analysis);
+    if (points.isEmpty) return startRow;
+
+    int row = startRow;
+    final titleCell = sheet.getRangeByIndex(row, 1);
+    titleCell.setText(
+      '📊 ${chart.title ?? "Analysis Breakdown (${chart.categoryColumn})"}:',
+    );
+    titleCell.cellStyle.fontName = theme.fontFamily;
+    titleCell.cellStyle.bold = true;
+    titleCell.cellStyle.fontSize = 11;
+    titleCell.cellStyle.fontColor = theme.primaryColor;
+    row += 2;
+
+    sheet.getRangeByIndex(row, 1).setText('Category');
+    sheet.getRangeByIndex(row, 1).cellStyle.fontName = theme.fontFamily;
+    sheet.getRangeByIndex(row, 1).cellStyle.bold = true;
+    sheet.getRangeByIndex(row, 1).cellStyle.backColor =
+        theme.groupHeaderBackgroundColor;
+    sheet.getRangeByIndex(row, 2).setText('Amount / Value');
+    sheet.getRangeByIndex(row, 2).cellStyle.fontName = theme.fontFamily;
+    sheet.getRangeByIndex(row, 2).cellStyle.bold = true;
+    sheet.getRangeByIndex(row, 2).cellStyle.backColor =
+        theme.groupHeaderBackgroundColor;
+    sheet.getRangeByIndex(row, 3).setText('Visual Distribution');
+    sheet.getRangeByIndex(row, 3).cellStyle.fontName = theme.fontFamily;
+    sheet.getRangeByIndex(row, 3).cellStyle.bold = true;
+    sheet.getRangeByIndex(row, 3).cellStyle.backColor =
+        theme.groupHeaderBackgroundColor;
+    row++;
+
+    final num maxVal = points.fold<num>(
+      0,
+      (maximum, point) => math.max(maximum, point.value.abs()),
+    );
+    for (final point in points) {
+      final catCell = sheet.getRangeByIndex(row, 1);
+      catCell.setText(point.label);
+      catCell.cellStyle.fontName = theme.fontFamily;
+
+      final valCell = sheet.getRangeByIndex(row, 2);
+      if (chart.showValues) valCell.setText(point.value.toString());
+      valCell.cellStyle.fontName = theme.fontFamily;
+
+      final pct = maxVal == 0 ? 0.0 : (point.value.abs() / maxVal);
+      final filledBlocks = (pct * 12).round();
+      final bar = '█' * filledBlocks + '░' * (12 - filledBlocks);
+      final barCell = sheet.getRangeByIndex(row, 3);
+      barCell.setText(
+        chart.showValues ? '$bar ${(pct * 100).toStringAsFixed(0)}%' : bar,
+      );
+      barCell.cellStyle.fontName = theme.fontFamily;
+      barCell.cellStyle.fontColor = theme.accentColor;
+      row++;
+    }
+    return row + 1;
+  }
+
+  int _renderSummaryAndPaymentBlock({
+    required Worksheet sheet,
+    required int startRow,
+    required int colCount,
+    List<ReportSummaryItem>? summaryItems,
+    ReportPaymentDetails? paymentDetails,
+    required ReportTheme theme,
+  }) {
+    int row = startRow;
+    int paymentEndRow = row;
+    int summaryEndRow = row;
+
+    // 1. Payment Details & Notes on the Left (Columns 1-2)
+    if (paymentDetails != null) {
+      int pRow = row;
+      final headerCell = sheet.getRangeByIndex(pRow, 1);
+      headerCell.setText('Payment & Remittance Instructions:');
+      headerCell.cellStyle.fontName = theme.fontFamily;
+      headerCell.cellStyle.bold = true;
+      headerCell.cellStyle.fontSize = 9.5;
+      headerCell.cellStyle.fontColor = theme.primaryColor;
+      pRow++;
+
+      if (paymentDetails.bankName != null) {
+        final lbl = sheet.getRangeByIndex(pRow, 1);
+        lbl.setText('Bank Name:');
+        lbl.cellStyle.fontName = theme.fontFamily;
+        lbl.cellStyle.fontSize = 9;
+        final val = sheet.getRangeByIndex(pRow, 2);
+        val.setText(paymentDetails.bankName!);
+        val.cellStyle.fontName = theme.fontFamily;
+        val.cellStyle.fontSize = 9;
+        pRow++;
+      }
+      if (paymentDetails.accountName != null) {
+        final lbl = sheet.getRangeByIndex(pRow, 1);
+        lbl.setText('Account Name:');
+        lbl.cellStyle.fontName = theme.fontFamily;
+        lbl.cellStyle.fontSize = 9;
+        final val = sheet.getRangeByIndex(pRow, 2);
+        val.setText(paymentDetails.accountName!);
+        val.cellStyle.fontName = theme.fontFamily;
+        val.cellStyle.fontSize = 9;
+        pRow++;
+      }
+      if (paymentDetails.accountNumber != null) {
+        final lbl = sheet.getRangeByIndex(pRow, 1);
+        lbl.setText('Account No:');
+        lbl.cellStyle.fontName = theme.fontFamily;
+        lbl.cellStyle.fontSize = 9;
+        final val = sheet.getRangeByIndex(pRow, 2);
+        val.setText(paymentDetails.accountNumber!);
+        val.cellStyle.fontName = theme.fontFamily;
+        val.cellStyle.fontSize = 9;
+        val.cellStyle.bold = true;
+        pRow++;
+      }
+      if (paymentDetails.branch != null) {
+        final lbl = sheet.getRangeByIndex(pRow, 1);
+        lbl.setText('Branch:');
+        lbl.cellStyle.fontName = theme.fontFamily;
+        lbl.cellStyle.fontSize = 9;
+        final val = sheet.getRangeByIndex(pRow, 2);
+        val.setText(paymentDetails.branch!);
+        val.cellStyle.fontName = theme.fontFamily;
+        val.cellStyle.fontSize = 9;
+        pRow++;
+      }
+      if (paymentDetails.swiftCode != null) {
+        final lbl = sheet.getRangeByIndex(pRow, 1);
+        lbl.setText('SWIFT / BIC:');
+        lbl.cellStyle.fontName = theme.fontFamily;
+        lbl.cellStyle.fontSize = 9;
+        final val = sheet.getRangeByIndex(pRow, 2);
+        val.setText(paymentDetails.swiftCode!);
+        val.cellStyle.fontName = theme.fontFamily;
+        val.cellStyle.fontSize = 9;
+        pRow++;
+      }
+      for (final note in paymentDetails.termsOrNotes) {
+        final lbl = sheet.getRangeByIndex(pRow, 1);
+        lbl.setText('Note:');
+        lbl.cellStyle.fontName = theme.fontFamily;
+        lbl.cellStyle.fontSize = 8.5;
+        lbl.cellStyle.italic = true;
+        final val = sheet.getRangeByIndex(pRow, 2);
+        val.setText(note);
+        val.cellStyle.fontName = theme.fontFamily;
+        val.cellStyle.fontSize = 8.5;
+        val.cellStyle.italic = true;
+        pRow++;
+      }
+      paymentEndRow = pRow;
+    }
+
+    // 2. Financial Summaries on the Right (Columns colCount - 1 and colCount)
+    if (summaryItems != null && summaryItems.isNotEmpty) {
+      int sRow = row;
+      final int labelCol = math.max(1, colCount - 1);
+      final int valCol = colCount;
+
+      for (final item in summaryItems) {
+        final labelCell = sheet.getRangeByIndex(sRow, labelCol);
+        labelCell.setText(item.label);
+        labelCell.cellStyle.fontName = theme.fontFamily;
+        labelCell.cellStyle.hAlign = HAlignType.right;
+        labelCell.cellStyle.fontSize = item.isEmphasized ? 11 : 9.5;
+        labelCell.cellStyle.bold = item.isBold || item.isEmphasized;
+        if (item.isEmphasized) {
+          labelCell.cellStyle.fontColor = theme.primaryColor;
+        }
+
+        final valCell = sheet.getRangeByIndex(sRow, valCol);
+        valCell.cellStyle.fontName = theme.fontFamily;
+        if (item.value is num) {
+          valCell.setNumber((item.value as num).toDouble());
+          if (item.currencyCode != null) {
+            valCell.numberFormat = '${item.currencyCode} #,##0.00';
+          } else {
+            valCell.numberFormat = '#,##0.00';
+          }
+        } else {
+          valCell.setText(item.value.toString());
+        }
+        valCell.cellStyle.hAlign = HAlignType.right;
+        valCell.cellStyle.fontSize = item.isEmphasized ? 11 : 9.5;
+        valCell.cellStyle.bold = item.isBold || item.isEmphasized;
+        if (item.isEmphasized) {
+          valCell.cellStyle.fontColor = theme.primaryColor;
+        }
+
+        if (item.showTopBorder) {
+          labelCell.cellStyle.borders.top.lineStyle = LineStyle.thin;
+          valCell.cellStyle.borders.top.lineStyle = LineStyle.thin;
+          labelCell.cellStyle.borders.top.color = theme.borderColor;
+          valCell.cellStyle.borders.top.color = theme.borderColor;
+        }
+        if (item.showDoubleBottomBorder) {
+          labelCell.cellStyle.borders.bottom.lineStyle = LineStyle.double;
+          valCell.cellStyle.borders.bottom.lineStyle = LineStyle.double;
+          labelCell.cellStyle.borders.bottom.color = theme.accentColor;
+          valCell.cellStyle.borders.bottom.color = theme.accentColor;
+        }
+        sRow++;
+      }
+      summaryEndRow = sRow;
+    }
+
+    return math.max(paymentEndRow, summaryEndRow) + 1;
+  }
+
   int _renderSignatures(
     Worksheet sheet,
-    List<String> labels,
+    List<ReportSignature> signatures,
+    SignatureLayout layout,
     ReportTheme theme,
     int startRow,
     int totalCols,
   ) {
     int row = startRow;
-    final int spacing = math.max(1, (totalCols ~/ labels.length));
 
-    for (int i = 0; i < labels.length; i++) {
-      final int col = (i * spacing) + 1;
-      final label = labels[i];
+    switch (layout) {
+      case SignatureLayout.adaptive:
+      case SignatureLayout.horizontal:
+        final int spacing = math.max(2, (totalCols ~/ signatures.length));
+        int maxBlockRows = 0;
 
-      final lineCell = sheet.getRangeByIndex(row, col);
-      lineCell.setText('______________________');
-      lineCell.cellStyle.fontColor = '#888888';
+        for (int i = 0; i < signatures.length; i++) {
+          final int col = (i * spacing) + 1;
+          final sig = signatures[i];
+          int r = row;
 
-      final labelCell = sheet.getRangeByIndex(row + 1, col);
-      labelCell.setText(label);
-      labelCell.cellStyle.bold = true;
-      labelCell.cellStyle.fontSize = 9;
-      labelCell.cellStyle.fontColor = theme.primaryColor;
+          if (sig.name != null && sig.name!.isNotEmpty) {
+            final nameCell = sheet.getRangeByIndex(r, col);
+            nameCell.setText(sig.name!);
+            nameCell.cellStyle.fontSize = 10;
+            nameCell.cellStyle.italic = true;
+            nameCell.cellStyle.bold = true;
+            r++;
+          }
+
+          final lineCell = sheet.getRangeByIndex(r, col);
+          lineCell.setText('______________________');
+          lineCell.cellStyle.fontColor = '#888888';
+          r++;
+
+          final titleCell = sheet.getRangeByIndex(r, col);
+          titleCell.setText(sig.title);
+          titleCell.cellStyle.bold = true;
+          titleCell.cellStyle.fontSize = 9;
+          titleCell.cellStyle.fontColor = theme.primaryColor;
+          r++;
+
+          if (sig.date != null && sig.date!.isNotEmpty) {
+            final dateCell = sheet.getRangeByIndex(r, col);
+            dateCell.setText('Date: ${sig.date!}');
+            dateCell.cellStyle.fontSize = 8.5;
+            dateCell.cellStyle.fontColor = '#666666';
+            r++;
+          }
+
+          maxBlockRows = math.max(maxBlockRows, r - row);
+        }
+        return row + maxBlockRows + 2;
+
+      case SignatureLayout.vertical:
+        // Transposed: signatures stacked vertically row-by-row
+        for (final sig in signatures) {
+          final titleCell = sheet.getRangeByIndex(row, 1);
+          titleCell.setText('${sig.title}:');
+          titleCell.cellStyle.bold = true;
+          titleCell.cellStyle.fontSize = 9.5;
+          titleCell.cellStyle.fontColor = theme.primaryColor;
+
+          final signCell = sheet.getRangeByIndex(row, 2);
+          if (sig.name != null && sig.name!.isNotEmpty) {
+            signCell.setText(sig.name!);
+            signCell.cellStyle.italic = true;
+            signCell.cellStyle.bold = true;
+          } else {
+            signCell.setText('______________________');
+            signCell.cellStyle.fontColor = '#888888';
+          }
+
+          if (sig.date != null && sig.date!.isNotEmpty) {
+            final dateCell = sheet.getRangeByIndex(row, 3);
+            dateCell.setText('Date: ${sig.date!}');
+            dateCell.cellStyle.fontSize = 8.5;
+            dateCell.cellStyle.fontColor = '#666666';
+          }
+          row++;
+        }
+        return row + 2;
+
+      case SignatureLayout.split:
+        // Split: Left side (Prepared / Date) & Right side (Checked / Approved / Authorized)
+        final leftSigs = <ReportSignature>[];
+        final rightSigs = <ReportSignature>[];
+
+        for (final sig in signatures) {
+          if (sig.isRightAligned) {
+            rightSigs.add(sig);
+          } else {
+            final lower = sig.title.toLowerCase();
+            if (lower.contains('checked') ||
+                lower.contains('approved') ||
+                lower.contains('authorized')) {
+              rightSigs.add(sig);
+            } else {
+              leftSigs.add(sig);
+            }
+          }
+        }
+
+        if (leftSigs.isEmpty || rightSigs.isEmpty) {
+          leftSigs.clear();
+          rightSigs.clear();
+          final half = (signatures.length / 2).ceil();
+          leftSigs.addAll(signatures.take(half));
+          rightSigs.addAll(signatures.skip(half));
+        }
+
+        final int rightCol = math.max(2, totalCols - 1);
+        int leftRow = row;
+        int rightRow = row;
+
+        for (final sig in leftSigs) {
+          if (sig.name != null && sig.name!.isNotEmpty) {
+            final nameCell = sheet.getRangeByIndex(leftRow, 1);
+            nameCell.setText(sig.name!);
+            nameCell.cellStyle.fontSize = 10;
+            nameCell.cellStyle.italic = true;
+            leftRow++;
+          }
+          final lineCell = sheet.getRangeByIndex(leftRow, 1);
+          lineCell.setText('______________________');
+          lineCell.cellStyle.fontColor = '#888888';
+          leftRow++;
+
+          final titleCell = sheet.getRangeByIndex(leftRow, 1);
+          titleCell.setText(sig.title);
+          titleCell.cellStyle.bold = true;
+          titleCell.cellStyle.fontSize = 9;
+          titleCell.cellStyle.fontColor = theme.primaryColor;
+          leftRow++;
+
+          if (sig.date != null && sig.date!.isNotEmpty) {
+            final dateCell = sheet.getRangeByIndex(leftRow, 1);
+            dateCell.setText('Date: ${sig.date!}');
+            dateCell.cellStyle.fontSize = 8.5;
+            dateCell.cellStyle.fontColor = '#666666';
+            leftRow++;
+          }
+          leftRow++;
+        }
+
+        for (final sig in rightSigs) {
+          if (sig.name != null && sig.name!.isNotEmpty) {
+            final nameCell = sheet.getRangeByIndex(rightRow, rightCol);
+            nameCell.setText(sig.name!);
+            nameCell.cellStyle.fontSize = 10;
+            nameCell.cellStyle.italic = true;
+            rightRow++;
+          }
+          final lineCell = sheet.getRangeByIndex(rightRow, rightCol);
+          lineCell.setText('______________________');
+          lineCell.cellStyle.fontColor = '#888888';
+          rightRow++;
+
+          final titleCell = sheet.getRangeByIndex(rightRow, rightCol);
+          titleCell.setText(sig.title);
+          titleCell.cellStyle.bold = true;
+          titleCell.cellStyle.fontSize = 9;
+          titleCell.cellStyle.fontColor = theme.primaryColor;
+          rightRow++;
+
+          if (sig.date != null && sig.date!.isNotEmpty) {
+            final dateCell = sheet.getRangeByIndex(rightRow, rightCol);
+            dateCell.setText('Date: ${sig.date!}');
+            dateCell.cellStyle.fontSize = 8.5;
+            dateCell.cellStyle.fontColor = '#666666';
+            rightRow++;
+          }
+          rightRow++;
+        }
+
+        return math.max(leftRow, rightRow) + 2;
     }
-
-    return row + 3;
   }
 
   void _populateOverviewSheet(
@@ -559,7 +1233,7 @@ class ExcelReportExporter {
     int row = 1;
 
     if (branding != null) {
-      row = _renderBranding(sheet, branding, theme, row);
+      row = _renderBranding(sheet, branding, theme, row, colCount: 4);
       row += 2;
     }
 
@@ -623,10 +1297,13 @@ class ExcelReportExporter {
   void _finalizeSheetLayout(
     Worksheet sheet,
     int colCount,
-    int totalRows,
     int tableStartRow,
+    int dataEndRow,
     ExcelExportOptions options,
   ) {
+    // Worksheet gridline visibility
+    sheet.showGridlines = options.showGridlines;
+
     // Auto-fit column widths with safety limits
     for (int c = 1; c <= colCount; c++) {
       try {
@@ -634,15 +1311,15 @@ class ExcelReportExporter {
       } catch (_) {}
     }
 
-    // Auto-filter on detail tables
+    // Auto-filter strictly on table data range only (NEVER includes totals, summaries, or signatures)
     if (options.enableAutoFilter &&
-        totalRows > tableStartRow + 1 &&
+        dataEndRow >= tableStartRow + 1 &&
         colCount > 0) {
       try {
         sheet.autoFilters.filterRange = sheet.getRangeByIndex(
           tableStartRow,
           1,
-          totalRows - 1,
+          dataEndRow,
           colCount,
         );
       } catch (_) {}

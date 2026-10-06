@@ -154,6 +154,8 @@ class ReportEngine {
       warnings: warnings,
       reconciliation: reconciliation,
       metadata: definition.metadata ?? {},
+      summaryItems: definition.summaryItems,
+      paymentDetails: definition.paymentDetails,
     );
   }
 
@@ -363,6 +365,7 @@ class ReportEngine {
       grandTotalRow: grandTotalRow,
       recordCount: records.length,
       summaryMetrics: analysis.customData ?? {},
+      chart: analysis.chart,
     );
   }
 
@@ -499,7 +502,21 @@ class ReportEngine {
       categorySheets: categorySheets,
       recordCount: records.length,
       summaryMetrics: analysis.customData ?? {},
+      chart: analysis.chart,
+      chartMeasureId: _resolveChartMeasureId(analysis),
     );
+  }
+
+  String? _resolveChartMeasureId(ReportAnalysis analysis) {
+    final requestedColumn = analysis.chart?.measureColumn;
+    if (requestedColumn == null) return null;
+
+    for (final measure in analysis.measures) {
+      if (measure.column == requestedColumn || measure.id == requestedColumn) {
+        return measure.id;
+      }
+    }
+    return null;
   }
 
   // =========================================================================
@@ -695,6 +712,7 @@ class ReportEngine {
       crossTabMatrix: crossTabMatrix,
       recordCount: records.length,
       summaryMetrics: analysis.customData ?? {},
+      chart: analysis.chart,
     );
   }
 
@@ -766,6 +784,7 @@ class ReportEngine {
       rows: rows,
       summaryMetrics: combinedMetrics,
       recordCount: records.length,
+      chart: analysis.chart,
     );
   }
 

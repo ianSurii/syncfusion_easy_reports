@@ -1,4 +1,5 @@
 import 'dart:io' show File;
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 import 'package:http/http.dart' as http;
@@ -188,73 +189,281 @@ class ExcelReportGenerator {
     Worksheet sheet,
     ReportBranding branding,
     ReportTheme theme,
-    int startRow,
-  ) async {
-    int currentRow = startRow;
+    int startRow, {
+    int colCount = 4,
+  }) async {
+    final bool hasLogo =
+        branding.logoBytes != null && branding.logoBytes!.isNotEmpty;
+    final double logoHeight = (branding.logoHeight ?? 50).toDouble();
+    final double logoWidth = (branding.logoWidth ?? 90).toDouble();
+    final int logoRows = (logoHeight / 17.0).ceil() + 1;
 
-    // Draw logo if present
-    if (branding.logoBytes != null && branding.logoBytes!.isNotEmpty) {
-      try {
-        final Picture picture = sheet.pictures.addStream(
-          currentRow,
-          1,
-          branding.logoBytes!,
-        );
-        picture.height = (branding.logoHeight ?? 100).toInt();
-        picture.width = (branding.logoWidth ?? 100).toInt();
-        currentRow += 5;
-      } catch (e) {
-        _log.warning('Failed to render logo picture in Excel: $e');
+    int textRows = 0;
+    if (branding.companyName != null) textRows++;
+    if (branding.address != null && branding.address!.isNotEmpty) textRows++;
+    if (branding.phone != null) textRows++;
+    if (branding.email != null) textRows++;
+
+    if (!hasLogo) {
+      int currentRow = startRow;
+      if (branding.companyName != null) {
+        final Range nameCell = sheet.getRangeByIndex(currentRow, 1);
+        nameCell.setText(branding.companyName!);
+        nameCell.cellStyle.fontSize = 15;
+        nameCell.cellStyle.bold = true;
+        nameCell.cellStyle.fontColor = theme.primaryColor;
+        currentRow++;
       }
-    }
-
-    // Company Title (Bold, themed color)
-    if (branding.companyName != null) {
-      final Range nameCell = sheet.getRangeByIndex(currentRow, 1);
-      nameCell.setText(branding.companyName!);
-      nameCell.cellStyle.fontSize = 16;
-      nameCell.cellStyle.bold = true;
-      nameCell.cellStyle.fontColor = theme.primaryColor;
-      currentRow++;
-    }
-
-    // Company Contact Data
-    if (branding.address != null) {
-      sheet.getRangeByIndex(currentRow, 1).setText(branding.address!);
-      currentRow++;
-    }
-
-    if (branding.phone != null) {
-      sheet.getRangeByIndex(currentRow, 1).setText('Phone: ${branding.phone}');
-      currentRow++;
-    }
-
-    if (branding.email != null) {
-      sheet.getRangeByIndex(currentRow, 1).setText('Email: ${branding.email}');
-      currentRow++;
-    }
-
-    // Report Title & Date
-    if (branding.reportTitle != null || branding.reportDate != null) {
-      currentRow++;
-      if (branding.reportTitle != null) {
-        final Range titleCell = sheet.getRangeByIndex(currentRow, 1);
-        titleCell.setText(branding.reportTitle!);
-        titleCell.cellStyle.fontSize = 12;
-        titleCell.cellStyle.bold = true;
+      if (branding.address != null && branding.address!.isNotEmpty) {
+        final Range addrCell = sheet.getRangeByIndex(currentRow, 1);
+        addrCell.setText(branding.address!);
+        addrCell.cellStyle.fontSize = 10;
+        addrCell.cellStyle.fontColor = '#555555';
+        currentRow++;
       }
-
-      if (branding.reportDate != null) {
-        final Range dateCell = sheet.getRangeByIndex(currentRow, 3);
-        dateCell.setDateTime(branding.reportDate!);
-        dateCell.numberFormat = 'dd-mmm-yyyy';
-        dateCell.cellStyle.italic = true;
-        dateCell.cellStyle.hAlign = HAlignType.right;
+      if (branding.phone != null) {
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .setText('Phone: ${branding.phone}');
+        currentRow++;
       }
-      currentRow++;
+      if (branding.email != null) {
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .setText('Email: ${branding.email}');
+        currentRow++;
+      }
+      if (branding.reportTitle != null || branding.reportDate != null) {
+        currentRow++;
+        if (branding.reportTitle != null) {
+          final Range titleCell = sheet.getRangeByIndex(currentRow, 1);
+          titleCell.setText(branding.reportTitle!);
+          titleCell.cellStyle.fontSize = 12;
+          titleCell.cellStyle.bold = true;
+          titleCell.cellStyle.fontColor = theme.accentColor;
+          currentRow++;
+        }
+        if (branding.reportDate != null) {
+          final Range dateCell = sheet.getRangeByIndex(currentRow, 1);
+          dateCell.setText(
+            'Date: ${branding.reportDate!.toIso8601String().split("T").first}',
+          );
+          dateCell.cellStyle.fontSize = 10;
+          dateCell.cellStyle.fontColor = '#666666';
+          currentRow++;
+        }
+      }
+      return currentRow + 1;
     }
 
-    return currentRow;
+    switch (branding.layout) {
+      case BrandingLayout.stacked:
+        try {
+          final Picture picture = sheet.pictures.addStream(
+            startRow,
+            1,
+            branding.logoBytes!,
+          );
+          picture.height = logoHeight.toInt();
+          picture.width = logoWidth.toInt();
+        } catch (e) {
+          _log.warning('Failed to render logo picture in Excel: $e');
+        }
+
+        int currentRow = startRow + logoRows + 1;
+
+        if (branding.companyName != null) {
+          final Range nameCell = sheet.getRangeByIndex(currentRow, 1);
+          nameCell.setText(branding.companyName!);
+          nameCell.cellStyle.fontSize = 15;
+          nameCell.cellStyle.bold = true;
+          nameCell.cellStyle.fontColor = theme.primaryColor;
+          currentRow++;
+        }
+
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          final Range addrCell = sheet.getRangeByIndex(currentRow, 1);
+          addrCell.setText(branding.address!);
+          addrCell.cellStyle.fontSize = 10;
+          addrCell.cellStyle.fontColor = '#555555';
+          currentRow++;
+        }
+
+        if (branding.phone != null) {
+          sheet
+              .getRangeByIndex(currentRow, 1)
+              .setText('Phone: ${branding.phone}');
+          currentRow++;
+        }
+
+        if (branding.email != null) {
+          sheet
+              .getRangeByIndex(currentRow, 1)
+              .setText('Email: ${branding.email}');
+          currentRow++;
+        }
+
+        if (branding.reportTitle != null || branding.reportDate != null) {
+          currentRow++;
+          if (branding.reportTitle != null) {
+            final Range titleCell = sheet.getRangeByIndex(currentRow, 1);
+            titleCell.setText(branding.reportTitle!);
+            titleCell.cellStyle.fontSize = 12;
+            titleCell.cellStyle.bold = true;
+            titleCell.cellStyle.fontColor = theme.accentColor;
+            currentRow++;
+          }
+          if (branding.reportDate != null) {
+            final Range dateCell = sheet.getRangeByIndex(currentRow, 1);
+            dateCell.setText(
+              'Date: ${branding.reportDate!.toIso8601String().split("T").first}',
+            );
+            dateCell.cellStyle.fontSize = 10;
+            dateCell.cellStyle.fontColor = '#666666';
+            currentRow++;
+          }
+        }
+        return currentRow + 1;
+
+      case BrandingLayout.sideBySide:
+        try {
+          final Picture picture = sheet.pictures.addStream(
+            startRow,
+            1,
+            branding.logoBytes!,
+          );
+          picture.height = logoHeight.toInt();
+          picture.width = logoWidth.toInt();
+        } catch (e) {
+          _log.warning('Failed to render logo picture in Excel: $e');
+        }
+
+        try {
+          final colWidthInChars = (logoWidth / 6.5) + 3.0;
+          final col = sheet.columns[0];
+          if (col != null && col.width < colWidthInChars) {
+            col.width = colWidthInChars;
+          }
+        } catch (_) {}
+
+        int textRow = startRow;
+        if (branding.companyName != null) {
+          final Range nameCell = sheet.getRangeByIndex(textRow, 2);
+          nameCell.setText(branding.companyName!);
+          nameCell.cellStyle.fontSize = 15;
+          nameCell.cellStyle.bold = true;
+          nameCell.cellStyle.fontColor = theme.primaryColor;
+          textRow++;
+        }
+
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          final Range addrCell = sheet.getRangeByIndex(textRow, 2);
+          addrCell.setText(branding.address!);
+          addrCell.cellStyle.fontSize = 10;
+          addrCell.cellStyle.fontColor = '#555555';
+          textRow++;
+        }
+
+        if (branding.phone != null) {
+          sheet.getRangeByIndex(textRow, 2).setText('Phone: ${branding.phone}');
+          textRow++;
+        }
+
+        if (branding.email != null) {
+          sheet.getRangeByIndex(textRow, 2).setText('Email: ${branding.email}');
+          textRow++;
+        }
+
+        final maxSpan = math.max(logoRows, textRows);
+        int nextRow = startRow + maxSpan + 1;
+
+        if (branding.reportTitle != null || branding.reportDate != null) {
+          if (branding.reportTitle != null) {
+            final Range titleCell = sheet.getRangeByIndex(nextRow, 1);
+            titleCell.setText(branding.reportTitle!);
+            titleCell.cellStyle.fontSize = 12;
+            titleCell.cellStyle.bold = true;
+            titleCell.cellStyle.fontColor = theme.accentColor;
+            nextRow++;
+          }
+          if (branding.reportDate != null) {
+            final Range dateCell = sheet.getRangeByIndex(nextRow, 1);
+            dateCell.setText(
+              'Date: ${branding.reportDate!.toIso8601String().split("T").first}',
+            );
+            dateCell.cellStyle.fontSize = 10;
+            dateCell.cellStyle.fontColor = '#666666';
+            nextRow++;
+          }
+        }
+        return nextRow + 1;
+
+      case BrandingLayout.topRightLogo:
+        int textRow = startRow;
+        if (branding.companyName != null) {
+          final Range nameCell = sheet.getRangeByIndex(textRow, 1);
+          nameCell.setText(branding.companyName!);
+          nameCell.cellStyle.fontSize = 15;
+          nameCell.cellStyle.bold = true;
+          nameCell.cellStyle.fontColor = theme.primaryColor;
+          textRow++;
+        }
+
+        if (branding.address != null && branding.address!.isNotEmpty) {
+          final Range addrCell = sheet.getRangeByIndex(textRow, 1);
+          addrCell.setText(branding.address!);
+          addrCell.cellStyle.fontSize = 10;
+          addrCell.cellStyle.fontColor = '#555555';
+          textRow++;
+        }
+
+        if (branding.phone != null) {
+          sheet.getRangeByIndex(textRow, 1).setText('Phone: ${branding.phone}');
+          textRow++;
+        }
+
+        if (branding.email != null) {
+          sheet.getRangeByIndex(textRow, 1).setText('Email: ${branding.email}');
+          textRow++;
+        }
+
+        final int rightCol = math.max(3, colCount);
+        try {
+          final Picture picture = sheet.pictures.addStream(
+            startRow,
+            rightCol,
+            branding.logoBytes!,
+          );
+          picture.height = logoHeight.toInt();
+          picture.width = logoWidth.toInt();
+        } catch (e) {
+          _log.warning('Failed to render logo picture in Excel: $e');
+        }
+
+        final maxSpan = math.max(logoRows, textRows);
+        int nextRow = startRow + maxSpan + 1;
+
+        if (branding.reportTitle != null || branding.reportDate != null) {
+          if (branding.reportTitle != null) {
+            final Range titleCell = sheet.getRangeByIndex(nextRow, 1);
+            titleCell.setText(branding.reportTitle!);
+            titleCell.cellStyle.fontSize = 12;
+            titleCell.cellStyle.bold = true;
+            titleCell.cellStyle.fontColor = theme.accentColor;
+            nextRow++;
+          }
+          if (branding.reportDate != null) {
+            final Range dateCell = sheet.getRangeByIndex(nextRow, 1);
+            dateCell.setText(
+              'Date: ${branding.reportDate!.toIso8601String().split("T").first}',
+            );
+            dateCell.cellStyle.fontSize = 10;
+            dateCell.cellStyle.fontColor = '#666666';
+            nextRow++;
+          }
+        }
+        return nextRow + 1;
+    }
   }
 
   // =========================================================================

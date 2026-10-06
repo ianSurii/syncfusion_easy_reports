@@ -7,6 +7,18 @@ enum ReportSectionOrientation {
   vertical,
 }
 
+/// Visual layout arrangement for the report branding header
+enum BrandingLayout {
+  /// Logo on top, followed cleanly by Company Name, Address, and Contacts with safe vertical spacing.
+  stacked,
+
+  /// Logo on the left, with Company Name, Address, and Contacts side-by-side to the right.
+  sideBySide,
+
+  /// Company Name, Address, and Contacts on the left, with the logo positioned on the top right.
+  topRightLogo,
+}
+
 /// Branding and contact information displayed in report headers and logos
 class ReportBranding {
   final String? companyName;
@@ -21,6 +33,8 @@ class ReportBranding {
   final String? reportTitle; // Backup title
   final DateTime? reportDate; // Report generation timestamp
   final Map<String, dynamic>? customData; // Extra header key-value fields
+  final BrandingLayout layout; // Layout arrangement for logo and text
+  final String? taxId; // Tax / VAT registration ID
 
   ReportBranding({
     this.companyName,
@@ -30,11 +44,13 @@ class ReportBranding {
     this.logoUrl,
     this.logoPath,
     this.logoBytes,
-    this.logoWidth = 100,
-    this.logoHeight = 100,
+    this.logoWidth = 90,
+    this.logoHeight = 45,
     this.reportTitle,
     this.reportDate,
     this.customData,
+    this.layout = BrandingLayout.stacked,
+    this.taxId,
   });
 
   /// Clone with new bytes
@@ -52,6 +68,7 @@ class ReportBranding {
       reportTitle: reportTitle,
       reportDate: reportDate,
       customData: customData,
+      layout: layout,
     );
   }
 }
@@ -73,6 +90,7 @@ class ReportTheme {
   final String zebraLightColor;
   final String zebraDarkColor;
   final String borderColor;
+  final String fontFamily;
 
   final double fontSizeTitle;
   final double fontSizeHeader;
@@ -104,7 +122,8 @@ class ReportTheme {
     this.zebraLightColor = '#F5F5F5',
     this.zebraDarkColor = '#FFFFFF',
     this.borderColor = '#BDBDBD',
-    this.fontSizeTitle = 18,
+    this.fontFamily = 'Arial',
+    this.fontSizeTitle = 16,
     this.fontSizeHeader = 10,
     this.fontSizeBody = 10,
     this.fontSizeTotals = 10,
@@ -119,10 +138,11 @@ class ReportTheme {
   });
 
   /// Predefined Blue Corporate Theme
-  factory ReportTheme.classicBlue() => ReportTheme();
+  factory ReportTheme.classicBlue({String fontFamily = 'Arial'}) =>
+      ReportTheme(fontFamily: fontFamily);
 
   /// Predefined Clean Green Theme
-  factory ReportTheme.forestGreen() => ReportTheme(
+  factory ReportTheme.forestGreen({String fontFamily = 'Arial'}) => ReportTheme(
     primaryColor: '#2E7D32',
     accentColor: '#1B5E20',
     headerBackgroundColor: '#2E7D32',
@@ -130,21 +150,24 @@ class ReportTheme {
     groupHeaderTextColor: '#1B5E20',
     totalsBackgroundColor: '#E8F5E9',
     borderColor: '#C8E6C9',
+    fontFamily: fontFamily,
   );
 
   /// Predefined Dark Slate Theme
-  factory ReportTheme.corporateDark() => ReportTheme(
-    primaryColor: '#37474F',
-    accentColor: '#212121',
-    headerBackgroundColor: '#37474F',
-    groupHeaderBackgroundColor: '#ECEFF1',
-    groupHeaderTextColor: '#263238',
-    totalsBackgroundColor: '#CFD8DC',
-    borderColor: '#B0BEC5',
-  );
+  factory ReportTheme.corporateDark({String fontFamily = 'Arial'}) =>
+      ReportTheme(
+        primaryColor: '#37474F',
+        accentColor: '#212121',
+        headerBackgroundColor: '#37474F',
+        groupHeaderBackgroundColor: '#ECEFF1',
+        groupHeaderTextColor: '#263238',
+        totalsBackgroundColor: '#CFD8DC',
+        borderColor: '#B0BEC5',
+        fontFamily: fontFamily,
+      );
 
   /// Predefined Slate Grey Theme
-  factory ReportTheme.slateGrey() => ReportTheme(
+  factory ReportTheme.slateGrey({String fontFamily = 'Arial'}) => ReportTheme(
     primaryColor: '#455A64',
     accentColor: '#37474F',
     headerBackgroundColor: '#455A64',
@@ -152,6 +175,7 @@ class ReportTheme {
     groupHeaderTextColor: '#273238',
     totalsBackgroundColor: '#E1E8ED',
     borderColor: '#CFD8DC',
+    fontFamily: fontFamily,
   );
 }
 
@@ -245,4 +269,187 @@ class ReportData {
     this.settings,
     this.theme,
   });
+}
+
+/// Orientation / layout mode for signature blocks
+enum SignatureLayout {
+  /// Adapts layout based on page orientation (vertical/stacked in portrait, horizontal/split in landscape)
+  adaptive,
+
+  /// Signatures placed horizontally across columns
+  horizontal,
+
+  /// Signatures stacked vertically row-by-row (transposed: rows instead of columns)
+  vertical,
+
+  /// Split: Left side (Prepared By & Date), Right side (Checked By & Approved By / Authorized By)
+  split,
+}
+
+/// Table border styling for clean, professional executive and invoice looks
+enum TableBorderStyle {
+  /// Clean modern aesthetic: subtle header bottom border, total double-line,
+  /// with no vertical lines and clean row whitespace.
+  clean,
+
+  /// Horizontal divider borders between rows only, no vertical lines.
+  horizontalOnly,
+
+  /// Minimalist: only the header underline and total line, completely borderless body.
+  headerAndTotalOnly,
+
+  /// Full bounding grid around every cell.
+  grid,
+
+  /// No borders at all.
+  none,
+}
+
+/// Dynamic chart / graph visualization types
+enum ReportChartType { bar, column, pie, line }
+
+/// Configuration for dynamic charts rendered alongside or within report analyses
+class ReportChartConfig {
+  final String? title;
+  final ReportChartType type;
+  final String categoryColumn;
+  final String measureColumn;
+  final int topN;
+  final double height;
+  final bool showValues;
+  final bool showLegend;
+
+  const ReportChartConfig({
+    this.title,
+    this.type = ReportChartType.column,
+    required this.categoryColumn,
+    required this.measureColumn,
+    this.topN = 8,
+    this.height = 140,
+    this.showValues = true,
+    this.showLegend = true,
+  });
+}
+
+/// Individual financial summary line item (e.g. Subtotal, Tax/VAT, Total, Balance Due)
+class ReportSummaryItem {
+  final String label;
+  final dynamic value;
+  final String? currencyCode;
+  final bool isBold;
+  final bool isNegative;
+  final bool isEmphasized;
+  final bool showTopBorder;
+  final bool showDoubleBottomBorder;
+
+  const ReportSummaryItem({
+    required this.label,
+    required this.value,
+    this.currencyCode,
+    this.isBold = false,
+    this.isNegative = false,
+    this.isEmphasized = false,
+    this.showTopBorder = false,
+    this.showDoubleBottomBorder = false,
+  });
+
+  factory ReportSummaryItem.subtotal(num amount, {String? currencyCode}) =>
+      ReportSummaryItem(
+        label: 'Subtotal',
+        value: amount,
+        currencyCode: currencyCode,
+      );
+
+  factory ReportSummaryItem.tax(
+    String label,
+    num amount, {
+    String? currencyCode,
+  }) => ReportSummaryItem(
+    label: label,
+    value: amount,
+    currencyCode: currencyCode,
+  );
+
+  factory ReportSummaryItem.total(num amount, {String? currencyCode}) =>
+      ReportSummaryItem(
+        label: 'Total',
+        value: amount,
+        currencyCode: currencyCode,
+        isBold: true,
+        showTopBorder: true,
+      );
+
+  factory ReportSummaryItem.balanceDue(num amount, {String? currencyCode}) =>
+      ReportSummaryItem(
+        label: 'Balance Due',
+        value: amount,
+        currencyCode: currencyCode,
+        isBold: true,
+        isEmphasized: true,
+        showTopBorder: true,
+        showDoubleBottomBorder: true,
+      );
+}
+
+/// Bank remittance, wire payment details, and terms/notes displayed at the bottom of reports
+class ReportPaymentDetails {
+  final String? bankName;
+  final String? accountName;
+  final String? accountNumber;
+  final String? branch;
+  final String? swiftCode;
+  final String? iban;
+  final List<String> termsOrNotes;
+
+  const ReportPaymentDetails({
+    this.bankName,
+    this.accountName,
+    this.accountNumber,
+    this.branch,
+    this.swiftCode,
+    this.iban,
+    this.termsOrNotes = const [],
+  });
+}
+
+/// Represents an individual signature block with optional pre-filled signer name, designation, and date.
+class ReportSignature {
+  /// The title/role label (e.g. 'Prepared By', 'Checked By', 'Approved By', 'Authorized By', 'Date')
+  final String title;
+
+  /// Optional pre-filled signer name (if null, renders as blank line for physical signing)
+  final String? name;
+
+  /// Optional date or timestamp string (if null, renders as blank date line or omitted)
+  final String? date;
+
+  /// Whether this signature aligns to the right side (used in split layout)
+  final bool isRightAligned;
+
+  const ReportSignature({
+    required this.title,
+    this.name,
+    this.date,
+    this.isRightAligned = false,
+  });
+
+  /// Factory for a blank signature placeholder
+  factory ReportSignature.blank(String title, {bool isRightAligned = false}) {
+    return ReportSignature(title: title, isRightAligned: isRightAligned);
+  }
+
+  /// Factory for a pre-filled signature
+  factory ReportSignature.filled({
+    required String title,
+    required String name,
+    String? date,
+    bool isRightAligned = false,
+  }) {
+    return ReportSignature(
+      title: title,
+      name: name,
+      date: date,
+      isRightAligned: isRightAligned,
+    );
+  }
 }

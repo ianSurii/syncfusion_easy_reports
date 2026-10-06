@@ -417,7 +417,7 @@ void main() {
       expect(errors.any((e) => e.contains('circular dependency')), isTrue);
     });
 
-    test('Should handle custom aging category buckets', () async {
+    test('Should handle custom aging category buckets dynamically', () async {
       final invoiceData = [
         {'inv': 'INV01', 'days': 10, 'amount': 1000.0},
         {'inv': 'INV02', 'days': 45, 'amount': 2500.0},
@@ -425,7 +425,54 @@ void main() {
         {'inv': 'INV04', 'days': 120, 'amount': 7000.0},
       ];
 
-      final agingDef = FinanceReportPresets.accountsReceivableAging();
+      final agingDef = ReportDefinition<Map<String, dynamic>>(
+        title: 'Accounts Receivable Aging Report',
+        columns: [
+          ReportColumn.text(
+            id: 'inv',
+            title: 'Invoice #',
+            value: (m) => m['inv'],
+          ),
+          ReportColumn.number(
+            id: 'days',
+            title: 'Days Overdue',
+            value: (m) => m['days'] as num?,
+          ),
+          ReportColumn.money(
+            id: 'amount',
+            title: 'Outstanding Amount',
+            currencyCode: 'USD',
+            value: (m) => m['amount'],
+          ),
+          ReportColumn.text(
+            id: 'aging_bucket',
+            title: 'Aging Bucket',
+            value: (m) {
+              final d = (m['days'] as num?)?.toInt() ?? 0;
+              if (d <= 30) return 'Current (0-30 Days)';
+              if (d <= 60) return '31-60 Days';
+              if (d <= 90) return '61-90 Days';
+              return '90+ Days (High Risk)';
+            },
+          ),
+        ],
+        analyses: [
+          ReportAnalysis.grouped(
+            id: 'aging_summary',
+            title: 'Aging Summary by Bucket',
+            groupBy: ['aging_bucket'],
+            measures: [
+              ReportMeasure.count(id: 'count', title: 'Invoices'),
+              ReportMeasure.sum(
+                column: 'amount',
+                title: 'Total Outstanding',
+                currencyCode: 'USD',
+              ),
+            ],
+            showGrandTotal: true,
+          ),
+        ],
+      );
       final prepared = await engine.prepare(
         definition: agingDef,
         records: invoiceData,
@@ -662,7 +709,7 @@ void main() {
     );
 
     test(
-      'PayrollReportPresets.categorizedDeductions generates complete multi-sheet analysis',
+      'Dynamic definition with multi-sheet category and cross-tab analysis',
       () async {
         final sampleDeductions = [
           {
@@ -694,8 +741,79 @@ void main() {
           },
         ];
 
-        final def = PayrollReportPresets.categorizedDeductions(
-          companyName: 'Acme Corp',
+        final def = ReportDefinition<Map<String, dynamic>>(
+          title: 'Payroll Deductions Schedules & Analysis',
+          branding: ReportBranding(companyName: 'Acme Corp'),
+          columns: [
+            ReportColumn.text(
+              id: 'employeeId',
+              title: 'Emp ID',
+              value: (m) => m['employeeId'],
+            ),
+            ReportColumn.text(
+              id: 'employeeName',
+              title: 'Employee Name',
+              value: (m) => m['employeeName'],
+            ),
+            ReportColumn.text(
+              id: 'department',
+              title: 'Department',
+              value: (m) => m['department'],
+            ),
+            ReportColumn.text(
+              id: 'deductionType',
+              title: 'Deduction Type',
+              value: (m) => m['deductionType'],
+            ),
+            ReportColumn.money(
+              id: 'amount',
+              title: 'Employee Amount',
+              currencyCode: 'USD',
+              value: (m) => m['amount'],
+            ),
+            ReportColumn.money(
+              id: 'employerContribution',
+              title: 'Employer Contrib',
+              currencyCode: 'USD',
+              value: (m) => m['employerContribution'],
+            ),
+          ],
+          analyses: [
+            ReportAnalysis.grouped(
+              id: 'deductions_summary',
+              title: 'Deductions Summary',
+              groupBy: ['deductionType'],
+              measures: [
+                ReportMeasure.count(id: 'count', title: 'Count'),
+                ReportMeasure.sum(
+                  column: 'amount',
+                  title: 'Total Employee',
+                  currencyCode: 'USD',
+                ),
+              ],
+            ),
+            ReportAnalysis.grouped(
+              id: 'deduction_schedules',
+              title: 'Deduction Schedules',
+              groupBy: ['deductionType'],
+              sheetPerCategory: true,
+              detailColumns: ['employeeId', 'employeeName', 'amount'],
+              measures: [
+                ReportMeasure.sum(
+                  column: 'amount',
+                  title: 'Total Employee',
+                  currencyCode: 'USD',
+                ),
+              ],
+            ),
+            ReportAnalysis.crossTab(
+              id: 'dept_by_deduction',
+              title: 'Department by Deduction Cross-Tab',
+              rowDimension: 'department',
+              columnDimension: 'deductionType',
+              measure: ReportMeasure.sum(column: 'amount', currencyCode: 'USD'),
+            ),
+          ],
         );
 
         final prepared = await engine.prepare(

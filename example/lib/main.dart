@@ -459,7 +459,7 @@ class _ShowcaseHomeState extends State<ShowcaseHome>
             Tab(icon: Icon(Icons.filter_alt), text: 'Filter & Sort'),
             Tab(icon: Icon(Icons.pivot_table_chart), text: 'CrossTab & Date'),
             Tab(icon: Icon(Icons.bolt), text: 'EasyReport'),
-            Tab(icon: Icon(Icons.dashboard), text: 'Presets'),
+            Tab(icon: Icon(Icons.receipt_long), text: 'Clean Invoice'),
           ],
         ),
       ),
@@ -485,7 +485,7 @@ class _ShowcaseHomeState extends State<ShowcaseHome>
                 _FilterSortTab(onRun: _run, onSave: _save),
                 _CrossTabDateTab(onRun: _run, onSave: _save),
                 _EasyReportTab(onRun: _run, onSave: _save),
-                _PresetsGalleryTab(onRun: _run, onSave: _save),
+                _InvoiceAndCleanStyleTab(onRun: _run, onSave: _save),
               ],
             ),
     );
@@ -508,6 +508,9 @@ class _TypedModelsTab extends StatelessWidget {
       subtitle: 'Period: October 2026  |  $_kFictional',
       branding: ReportBranding(
         companyName: 'Acme Global Corporation',
+        address: '742 Evergreen Terrace, Springfield, OR 97477',
+        phone: '+1 (555) 867-5309',
+        email: 'payroll@acmeglobal.com',
         logoPath: 'assets/logo.png',
       ),
       theme: ReportTheme.classicBlue(),
@@ -628,17 +631,61 @@ class _TypedModelsTab extends StatelessWidget {
         freezeHeaderRow: true,
         enableAutoFilter: true,
         showSignatures: true,
-        signatureLabels: [
-          'Prepared By',
-          'Checked By',
-          'Approved By',
-          'Authorized By',
+        signatureLayout: SignatureLayout.split,
+        signatures: [
+          ReportSignature(
+            title: 'Prepared By',
+            name: 'Eleanor Vance (Senior Accountant)',
+            date: 'October 04, 2026',
+          ),
+          ReportSignature(
+            title: 'Checked By',
+            name: 'Marcus Brody (Finance Lead)',
+            date: 'October 04, 2026',
+          ),
+          ReportSignature(
+            title: 'Approved By',
+            name: 'Julian Hayes (VP Finance)',
+            date: 'October 05, 2026',
+            isRightAligned: true,
+          ),
+          ReportSignature(
+            title: 'Authorized By',
+            name: 'Amara Okafor (Managing Director)',
+            date: 'October 05, 2026',
+            isRightAligned: true,
+          ),
         ],
       ),
       pdfOptions: const PdfExportOptions(
         showSignatures: true,
         showPageNumbers: true,
         repeatHeaders: true,
+        signatureLayout: SignatureLayout.split,
+        signatures: [
+          ReportSignature(
+            title: 'Prepared By',
+            name: 'Eleanor Vance (Senior Accountant)',
+            date: 'October 04, 2026',
+          ),
+          ReportSignature(
+            title: 'Checked By',
+            name: 'Marcus Brody (Finance Lead)',
+            date: 'October 04, 2026',
+          ),
+          ReportSignature(
+            title: 'Approved By',
+            name: 'Julian Hayes (VP Finance)',
+            date: 'October 05, 2026',
+            isRightAligned: true,
+          ),
+          ReportSignature(
+            title: 'Authorized By',
+            name: 'Amara Okafor (Managing Director)',
+            date: 'October 05, 2026',
+            isRightAligned: true,
+          ),
+        ],
       ),
     );
   }
@@ -1489,6 +1536,9 @@ class _EasyReportTabState extends State<_EasyReportTab> {
   bool _crossTab = false;
   bool _summaryCard = true;
   bool _signatures = true;
+  bool _prefillSignatures = true;
+  BrandingLayout _brandingLayout = BrandingLayout.stacked;
+  SignatureLayout _signatureLayout = SignatureLayout.split;
   String _theme = 'Classic Blue';
 
   List<Map<String, dynamic>> get _data =>
@@ -1502,6 +1552,46 @@ class _EasyReportTabState extends State<_EasyReportTab> {
     'Slate Grey' => ReportTheme.slateGrey(),
     _ => ReportTheme.classicBlue(),
   };
+
+  List<ReportSignature>? get _signatureBlocks => _signatures
+      ? [
+          ReportSignature(
+            title: 'Prepared By',
+            name: _prefillSignatures
+                ? 'Eleanor Vance (Senior Accountant)'
+                : null,
+            date: _prefillSignatures ? 'October 04, 2026' : null,
+          ),
+          ReportSignature(
+            title: 'Checked By',
+            name: _prefillSignatures ? 'Marcus Brody (Finance Lead)' : null,
+            date: _prefillSignatures ? 'October 04, 2026' : null,
+          ),
+          ReportSignature(
+            title: 'Approved By',
+            name: _prefillSignatures ? 'Julian Hayes (VP Finance)' : null,
+            date: _prefillSignatures ? 'October 05, 2026' : null,
+            isRightAligned: true,
+          ),
+          ReportSignature(
+            title: 'Authorized By',
+            name: _prefillSignatures
+                ? 'Amara Okafor (Managing Director)'
+                : null,
+            date: _prefillSignatures ? 'October 05, 2026' : null,
+            isRightAligned: true,
+          ),
+        ]
+      : null;
+
+  ReportBranding get _reportBranding => ReportBranding(
+    companyName: 'Acme Global Corporation',
+    address: '742 Evergreen Terrace, Springfield, OR 97477',
+    phone: '+1 (555) 867-5309',
+    email: 'finance@acmeglobal.com',
+    logoPath: 'assets/logo.png',
+    layout: _brandingLayout,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -1600,6 +1690,64 @@ class _EasyReportTabState extends State<_EasyReportTab> {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<BrandingLayout>(
+                      initialValue: _brandingLayout,
+                      decoration: const InputDecoration(
+                        labelText: 'Branding Layout',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: BrandingLayout.stacked,
+                          child: Text('Stacked (Safe Clearance)'),
+                        ),
+                        DropdownMenuItem(
+                          value: BrandingLayout.sideBySide,
+                          child: Text('Side-by-Side (Logo + Details)'),
+                        ),
+                        DropdownMenuItem(
+                          value: BrandingLayout.topRightLogo,
+                          child: Text('Top-Right Logo'),
+                        ),
+                      ],
+                      onChanged: (v) => setState(
+                        () => _brandingLayout = v ?? BrandingLayout.stacked,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButtonFormField<SignatureLayout>(
+                      initialValue: _signatureLayout,
+                      decoration: const InputDecoration(
+                        labelText: 'Signature Layout (Transpose)',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: SignatureLayout.split,
+                          child: Text('Split (Prepared Left / Approved Right)'),
+                        ),
+                        DropdownMenuItem(
+                          value: SignatureLayout.vertical,
+                          child: Text('Vertical Transposed (Rows)'),
+                        ),
+                        DropdownMenuItem(
+                          value: SignatureLayout.horizontal,
+                          child: Text('Horizontal (Columns)'),
+                        ),
+                      ],
+                      onChanged: (v) => setState(
+                        () => _signatureLayout = v ?? SignatureLayout.split,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               Wrap(
                 children: [
                   _Switch(
@@ -1622,6 +1770,11 @@ class _EasyReportTabState extends State<_EasyReportTab> {
                     _signatures,
                     (v) => setState(() => _signatures = v),
                   ),
+                  _Switch(
+                    'Pre-fill Signers & Dates',
+                    _prefillSignatures,
+                    (v) => setState(() => _prefillSignatures = v),
+                  ),
                 ],
               ),
             ],
@@ -1635,12 +1788,21 @@ class _EasyReportTabState extends State<_EasyReportTab> {
               'final report = EasyReport.fromMaps(\n'
               '  data: myMaps,\n'
               '  title: \'Deductions Report\',\n'
-              '  companyName: \'Acme Corp\',\n'
+              '  branding: ReportBranding(\n'
+              '    companyName: \'Acme Global Corporation\',\n'
+              '    address: \'742 Evergreen Terrace, Springfield, OR\',\n'
+              '    layout: BrandingLayout.stacked,\n'
+              '  ),\n'
               '  groupBy: \'deductionType\',\n'
               '  sheetPerCategory: true,\n'
               '  includeCrossTab: true,\n'
               '  includeSummaryCard: true,\n'
               '  showSignatures: true,\n'
+              '  signatureLayout: SignatureLayout.split,\n'
+              '  signatureBlocks: [\n'
+              '    ReportSignature(title: \'Prepared By\', name: \'Eleanor Vance\', date: \'Oct 4, 2026\'),\n'
+              '    ReportSignature(title: \'Approved By\', name: \'Julian Hayes\', isRightAligned: true),\n'
+              '  ],\n'
               ');\n'
               '\n'
               '// Export options:\n'
@@ -1673,16 +1835,15 @@ class _EasyReportTabState extends State<_EasyReportTab> {
               data: _data,
               title: '$_dataset Report',
               subtitle: _kFictional,
-              branding: ReportBranding(
-                companyName: 'Easy Corp',
-                logoPath: 'assets/logo.png',
-              ),
+              branding: _reportBranding,
               theme: _themeObj(),
               groupBy: _groupByField,
               sheetPerCategory: _sheetPerCategory,
               includeCrossTab: _crossTab,
               includeSummaryCard: _summaryCard,
               showSignatures: _signatures,
+              signatureLayout: _signatureLayout,
+              signatureBlocks: _signatureBlocks,
             );
             await r.saveExcel();
           }),
@@ -1696,15 +1857,14 @@ class _EasyReportTabState extends State<_EasyReportTab> {
               data: _data,
               title: '$_dataset Report',
               subtitle: _kFictional,
-              branding: ReportBranding(
-                companyName: 'Easy Corp',
-                logoPath: 'assets/logo.png',
-              ),
+              branding: _reportBranding,
               theme: _themeObj(),
               groupBy: _groupByField,
               sheetPerCategory: _sheetPerCategory,
               includeSummaryCard: _summaryCard,
               showSignatures: _signatures,
+              signatureLayout: _signatureLayout,
+              signatureBlocks: _signatureBlocks,
             );
             await r.savePdf();
           }),
@@ -1717,11 +1877,10 @@ class _EasyReportTabState extends State<_EasyReportTab> {
             final r = EasyReport.fromMaps(
               data: _data,
               title: 'Bytes Demo',
-              branding: ReportBranding(
-                companyName: 'Easy Corp',
-                logoPath: 'assets/logo.png',
-              ),
+              branding: _reportBranding,
               groupBy: _groupByField,
+              signatureLayout: _signatureLayout,
+              signatureBlocks: _signatureBlocks,
             );
             final artifact = await r.toExcel();
             print(
@@ -1755,244 +1914,649 @@ class _Switch extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TAB 6 — Presets Gallery
+// TAB 6 — Clean Invoice & Custom Styling
 // ═══════════════════════════════════════════════════════════════════════════════
-class _PresetsGalleryTab extends StatelessWidget {
-  const _PresetsGalleryTab({required this.onRun, required this.onSave});
+class _InvoiceAndCleanStyleTab extends StatefulWidget {
+  const _InvoiceAndCleanStyleTab({required this.onRun, required this.onSave});
   final Future<void> Function(Future<void> Function()) onRun;
   final Future<void> Function(ReportArtifact) onSave;
 
   @override
-  Widget build(BuildContext context) {
-    final engine = ReportEngine();
+  State<_InvoiceAndCleanStyleTab> createState() =>
+      _InvoiceAndCleanStyleTabState();
+}
 
-    Future<void> run<T>(
-      ReportDefinition<T> def,
-      List<T> data, {
-      required bool pdf,
-    }) => onRun(() async {
-      final a = pdf
-          ? await engine.generatePdf(definition: def, records: data)
-          : await engine.generateExcel(definition: def, records: data);
-      await onSave(a);
-    });
+class _InvoiceAndCleanStyleTabState extends State<_InvoiceAndCleanStyleTab> {
+  TableBorderStyle _borderStyle = TableBorderStyle.clean;
+  bool _showGridlines = false;
+  String _pdfOrientation = 'portrait';
+  bool _includeChart = true;
 
-    final inventoryData = <Map<String, dynamic>>[
-      {
-        'sku': 'SKU-501',
-        'name': '4K Pro Display 27"',
-        'category': 'Monitors',
-        'warehouse': 'North Hub',
-        'stockOnHand': 140,
-        'reorderLevel': 30,
-        'unitCost': 320.0,
-      },
-      {
-        'sku': 'SKU-502',
-        'name': 'Ergonomic Mechanical Keyboard',
-        'category': 'Peripherals',
-        'warehouse': 'Central Depot',
-        'stockOnHand': 25,
-        'reorderLevel': 40,
-        'unitCost': 85.0,
-      },
-      {
-        'sku': 'SKU-503',
-        'name': 'Wireless Noise-Canceling Headset',
-        'category': 'Audio',
-        'warehouse': 'North Hub',
-        'stockOnHand': 85,
-        'reorderLevel': 20,
-        'unitCost': 110.0,
-      },
-      {
-        'sku': 'SKU-504',
-        'name': 'USB-C Multi-Port Docking Hub',
-        'category': 'Peripherals',
-        'warehouse': 'West Logistics',
-        'stockOnHand': 210,
-        'reorderLevel': 50,
-        'unitCost': 45.0,
-      },
-      {
-        'sku': 'SKU-505',
-        'name': 'Ultra-Fast NVMe SSD 2TB',
-        'category': 'Storage',
-        'warehouse': 'Central Depot',
-        'stockOnHand': 60,
-        'reorderLevel': 25,
-        'unitCost': 140.0,
-      },
+  final List<Map<String, dynamic>> _invoiceItems = [
+    {
+      'item': 'Senior Enterprise Architecture & Consulting',
+      'category': 'Architecture',
+      'hours': 40,
+      'rate': 185.0,
+      'amount': 7400.0,
+    },
+    {
+      'item': 'Flutter Engine & High-Performance Dart Core',
+      'category': 'Core Engine',
+      'hours': 35,
+      'rate': 130.0,
+      'amount': 4550.0,
+    },
+    {
+      'item': 'Automated Multi-Format Export Pipelines',
+      'category': 'Data Pipelines',
+      'hours': 20,
+      'rate': 115.0,
+      'amount': 2300.0,
+    },
+    {
+      'item': 'Continuous Integration Security & Compliance',
+      'category': 'DevOps',
+      'hours': 12,
+      'rate': 125.0,
+      'amount': 1500.0,
+    },
+  ];
+
+  Future<void> _export(bool isPdf) async {
+    final summaryItems = [
+      ReportSummaryItem.subtotal(15750.0, currencyCode: 'USD'),
+      ReportSummaryItem.tax('Tax / VAT (16%)', 2520.0, currencyCode: 'USD'),
+      const ReportSummaryItem(
+        label: 'Processing & Delivery',
+        value: 150.0,
+        currencyCode: 'USD',
+      ),
+      ReportSummaryItem.total(18420.0, currencyCode: 'USD'),
+      ReportSummaryItem.balanceDue(18420.0, currencyCode: 'USD'),
     ];
 
-    final hrData = _employees
-        .map(
-          (e) =>
-              {
-                    'id': e.id,
-                    'name': e.name,
-                    'dept': e.department,
-                    'joinedDate': e.joinedDate,
-                    'isActive': e.isActive,
-                    'basicPay': e.basicPay,
-                  }
-                  as Map<String, dynamic>,
-        )
-        .toList();
+    const paymentDetails = ReportPaymentDetails(
+      bankName: 'Standard Chartered Bank',
+      accountName: 'Antigravity Enterprise Solutions Ltd',
+      accountNumber: '0108044921000',
+      branch: 'Westlands Commercial Hub',
+      swiftCode: 'SCBLKENX',
+      termsOrNotes: [
+        'Payment terms: Net 30 days from date of invoice.',
+        'Please quote invoice number as payment reference.',
+      ],
+    );
 
+    await widget.onRun(() async {
+      final easy = EasyReport.fromMaps(
+        data: _invoiceItems,
+        title: 'Professional Consulting Tax Invoice',
+        subtitle: 'Invoice #INV-2026-0891 • Issue Date: 2026-10-05',
+        companyName: 'Apex Innovations Global',
+        branding: ReportBranding(
+          companyName: 'Apex Innovations Global',
+          address: '100 Enterprise Way, Suite 400, Tech District',
+          phone: '+1 (800) 555-0199',
+          email: 'billing@apexinnovations.com',
+          taxId: 'US-EIN-98-7654321',
+          logoWidth: 90,
+          logoHeight: 45,
+        ),
+        tableBorderStyle: _borderStyle,
+        showGridlines: _showGridlines,
+        pdfOrientation: _pdfOrientation,
+        includeChart: _includeChart,
+        groupBy: 'category',
+        chartConfig: _includeChart
+            ? const ReportChartConfig(
+                type: ReportChartType.bar,
+                title: 'Consulting Hours by Practice',
+                categoryColumn: 'category',
+                measureColumn: 'hours',
+                topN: 4,
+              )
+            : null,
+        summaryItems: summaryItems,
+        paymentDetails: paymentDetails,
+        currencyCode: 'USD',
+        currencyColumns: ['rate', 'amount'],
+      );
+
+      final artifact = isPdf
+          ? await easy.exportPdf(
+              options: PdfExportOptions(
+                orientation: _pdfOrientation,
+                tableBorderStyle: _borderStyle,
+                showSignatures: true,
+                signatureLayout: SignatureLayout.adaptive,
+                signatureLabels: ['Prepared By', 'Approved & Authorized By'],
+              ),
+            )
+          : await easy.exportExcel(
+              options: ExcelExportOptions(
+                showGridlines: _showGridlines,
+                tableBorderStyle: _borderStyle,
+                showSignatures: true,
+                signatureLayout: SignatureLayout.adaptive,
+                signatureLabels: ['Prepared By', 'Approved & Authorized By'],
+              ),
+            );
+
+      await widget.onSave(artifact);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         const _InfoBanner(
-          'Domain presets wrap common ReportDefinition patterns. '
-          'Pass your data — the schema is pre-configured.',
+          'Dynamic Invoice & Clean Styling: Customize table border styles, '
+          'turn off Excel worksheet gridlines, embed remittance / bank accounts, '
+          'and generate portrait PDFs with automatically stacked signatures.',
         ),
-        const SizedBox(height: 12),
-        _PresetCard(
-          title: 'Monthly Payroll Register',
-          category: 'Payroll',
-          icon: Icons.payments_outlined,
-          color: const Color(0xFF1565C0),
-          description:
-              'Full payroll ledger with basic pay, allowances, deductions, '
-              'net pay, department totals, and bank transfer schedule.',
-          recordCount: _employees.length,
-          apiCall:
-              'PayrollReportPresets.monthlyPayroll(\n  companyName: \'Acme Corp\',\n)',
-          onExcel: () => run(
-            PayrollReportPresets.monthlyPayroll(companyName: 'Acme Corp'),
-            _employees,
-            pdf: false,
-          ),
-          onPdf: () => run(
-            PayrollReportPresets.monthlyPayroll(companyName: 'Acme Corp'),
-            _employees,
-            pdf: true,
+        const SizedBox(height: 14),
+
+        // Style & Options Card
+        Card(
+          elevation: 1.5,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.palette_outlined, color: Color(0xFF1565C0)),
+                    SizedBox(width: 8),
+                    Text(
+                      'Report Appearance & Layout Controls',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Table Border Style Selector
+                DropdownButtonFormField<TableBorderStyle>(
+                  initialValue: _borderStyle,
+                  decoration: const InputDecoration(
+                    labelText: 'Table Border Style',
+                    border: OutlineInputBorder(),
+                    helperText:
+                        'Clean style: Dark header underline, borderless body, double total line',
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: TableBorderStyle.clean,
+                      child: Text('Clean / Modern Invoice (No vertical lines)'),
+                    ),
+                    DropdownMenuItem(
+                      value: TableBorderStyle.horizontalOnly,
+                      child: Text('Horizontal Dividers Only'),
+                    ),
+                    DropdownMenuItem(
+                      value: TableBorderStyle.headerAndTotalOnly,
+                      child: Text('Header & Total Lines Only'),
+                    ),
+                    DropdownMenuItem(
+                      value: TableBorderStyle.grid,
+                      child: Text('Full Classic Grid (All Borders)'),
+                    ),
+                    DropdownMenuItem(
+                      value: TableBorderStyle.none,
+                      child: Text('None (Borderless)'),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _borderStyle = val);
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // Excel Gridlines Toggle
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.grid_off_outlined),
+                  title: const Text('Excel Worksheet Gridlines'),
+                  subtitle: Text(
+                    _showGridlines
+                        ? 'Gridlines are ON (default Excel appearance)'
+                        : 'Gridlines are OFF (Pristine modern document style)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _showGridlines
+                          ? Colors.grey.shade700
+                          : Colors.green.shade700,
+                      fontWeight: _showGridlines
+                          ? FontWeight.normal
+                          : FontWeight.bold,
+                    ),
+                  ),
+                  value: _showGridlines,
+                  onChanged: (val) => setState(() => _showGridlines = val),
+                ),
+                const Divider(),
+
+                // PDF Orientation Selector
+                Row(
+                  children: [
+                    const Icon(Icons.screen_rotation_outlined, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'PDF Orientation:',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(width: 14),
+                    ChoiceChip(
+                      label: const Text('Portrait (Stacked Signatures)'),
+                      selected: _pdfOrientation == 'portrait',
+                      onSelected: (sel) {
+                        if (sel) setState(() => _pdfOrientation = 'portrait');
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    ChoiceChip(
+                      label: const Text('Landscape (Split Signatures)'),
+                      selected: _pdfOrientation == 'landscape',
+                      onSelected: (sel) {
+                        if (sel) setState(() => _pdfOrientation = 'landscape');
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _pdfOrientation == 'portrait'
+                      ? '• Portrait mode automatically stacks signatures vertically row-by-row to prevent horizontal crowding.'
+                      : '• Landscape mode positions signatures with Split layout (Left: Prepared/Date, Right: Approved/Authorized).',
+                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+                ),
+                const Divider(),
+
+                // Chart Toggle
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.bar_chart_outlined),
+                  title: const Text('Include Visual Chart Breakdown'),
+                  subtitle: const Text(
+                    'PDF renders the selected chart; Excel shows a proportional category breakdown',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  value: _includeChart,
+                  onChanged: (val) => setState(() => _includeChart = val),
+                ),
+              ],
+            ),
           ),
         ),
-        _PresetCard(
-          title: 'Categorized Deductions & Remittances',
-          category: 'Payroll',
-          icon: Icons.pie_chart_outline,
-          color: const Color(0xFF6A1B9A),
-          description:
-              'Deductions per scheme (KCB Loan, Equity Loan, Housing Levy, '
-              'SHA/SHIF, PAYE) — one Excel sheet per type, with totals and signatures.',
-          recordCount: _deductionsData.length,
-          apiCall:
-              'PayrollReportPresets.categorizedDeductions(\n  companyName: \'Acme Corp\',\n)',
-          onExcel: () => run(
-            PayrollReportPresets.categorizedDeductions(
-              companyName: 'Acme Corp',
-            ),
-            _deductionsData,
-            pdf: false,
+        const SizedBox(height: 14),
+
+        // Live Document Preview
+        Card(
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: Colors.grey.shade300),
           ),
-          onPdf: () => run(
-            PayrollReportPresets.categorizedDeductions(
-              companyName: 'Acme Corp',
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Apex Innovations Global',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1565C0),
+                          ),
+                        ),
+                        Text(
+                          '100 Enterprise Way, Suite 400 • Tel: +1 800 555 0199',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        Text(
+                          'Tax ID / PIN: US-EIN-98-7654321',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: const Text(
+                        'TAX INVOICE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1565C0),
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24, thickness: 1.5),
+
+                // Table Items
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(4),
+                    1: FlexColumnWidth(1.2),
+                    2: FlexColumnWidth(1.8),
+                    3: FlexColumnWidth(1.8),
+                  },
+                  children: [
+                    TableRow(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: _borderStyle == TableBorderStyle.none
+                                ? Colors.transparent
+                                : const Color(0xFF1565C0),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6),
+                          child: Text(
+                            'Description',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6),
+                          child: Text(
+                            'Hours',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6),
+                          child: Text(
+                            'Rate',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6),
+                          child: Text(
+                            'Amount',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    ..._invoiceItems.map(
+                      (item) => TableRow(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color:
+                                  (_borderStyle ==
+                                          TableBorderStyle.horizontalOnly ||
+                                      _borderStyle == TableBorderStyle.grid)
+                                  ? Colors.grey.shade200
+                                  : Colors.transparent,
+                            ),
+                          ),
+                        ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Text(
+                              item['item'],
+                              style: const TextStyle(fontSize: 11.5),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Text(
+                              '${item['hours']}',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(fontSize: 11.5),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Text(
+                              '\$${(item['rate'] as num).toStringAsFixed(2)}',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(fontSize: 11.5),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Text(
+                              '\$${(item['amount'] as num).toStringAsFixed(2)}',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Bottom Remittance & Financial Summary Block
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Remittance / Bank Info (Left Side)
+                    Expanded(
+                      flex: 5,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Remittance / Payment Details',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: Color(0xFF1565C0),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Bank: Standard Chartered Bank',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                            const Text(
+                              'Account Name: Antigravity Solutions Ltd',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                            const Text(
+                              'Account No: 0108044921000',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              'Branch: Westlands Commercial Hub',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                            const Text(
+                              'SWIFT / BIC: SCBLKENX',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Note: Payment terms Net 30 days.',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+
+                    // Financial Summary Stack (Right Side)
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        children: [
+                          _summaryRow('Subtotal:', '\$15,750.00'),
+                          _summaryRow('Tax / VAT (16%):', '\$2,520.00'),
+                          _summaryRow('Processing:', '\$150.00'),
+                          const Divider(height: 12),
+                          _summaryRow('Total:', '\$18,420.00', isBold: true),
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: Colors.blue.shade700,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: _summaryRow(
+                              'Balance Due:',
+                              '\$18,420.00',
+                              isBold: true,
+                              color: const Color(0xFF1565C0),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            _deductionsData,
-            pdf: true,
           ),
         ),
-        _PresetCard(
-          title: 'Sales Performance & CrossTab',
-          category: 'Sales',
-          icon: Icons.trending_up,
-          color: const Color(0xFF2E7D32),
-          description:
-              'Order listing, salesperson ranking, gross margin, '
-              'and category-by-region pivot matrix.',
-          recordCount: _salesData.length,
-          apiCall:
-              'SalesReportPresets.salesPerformance(\n  companyName: \'Apex Dynamics\',\n)',
-          onExcel: () => run(
-            SalesReportPresets.salesPerformance(companyName: 'Apex Dynamics'),
-            _salesData,
-            pdf: false,
-          ),
-          onPdf: () => run(
-            SalesReportPresets.salesPerformance(companyName: 'Apex Dynamics'),
-            _salesData,
-            pdf: true,
-          ),
-        ),
-        _PresetCard(
-          title: 'Accounts Receivable Aging',
-          category: 'Finance',
-          icon: Icons.account_balance,
-          color: const Color(0xFF37474F),
-          description:
-              'Aging buckets: 0-30, 31-60, 61-90, 90+ days overdue, '
-              'with customer-level detail per bucket.',
-          recordCount: _agingData.length,
-          apiCall:
-              'FinanceReportPresets.accountsReceivableAging(\n  companyName: \'Starlight\',\n)',
-          onExcel: () => run(
-            FinanceReportPresets.accountsReceivableAging(
-              companyName: 'Starlight Financials',
+        const SizedBox(height: 18),
+
+        // Action Buttons
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E7E34),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: const Icon(Icons.table_view),
+                label: Text(
+                  _showGridlines
+                      ? 'Export Excel (Gridlines: ON)'
+                      : 'Export Clean Excel (Gridlines: OFF)',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed: () => _export(false),
+              ),
             ),
-            _agingData,
-            pdf: false,
-          ),
-          onPdf: () => run(
-            FinanceReportPresets.accountsReceivableAging(
-              companyName: 'Starlight Financials',
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC62828),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: const Icon(Icons.picture_as_pdf),
+                label: Text(
+                  'Export PDF (${_pdfOrientation.toUpperCase()})',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed: () => _export(true),
+              ),
             ),
-            _agingData,
-            pdf: true,
-          ),
-        ),
-        _PresetCard(
-          title: 'Stock Valuation & Low-Stock Alerts',
-          category: 'Inventory',
-          icon: Icons.inventory_2_outlined,
-          color: const Color(0xFFE65100),
-          description:
-              'SKU register with unit costs, stock-on-hand valuation, '
-              'warehouse location groups, and reorder alerts.',
-          recordCount: inventoryData.length,
-          apiCall:
-              'InventoryReportPresets.stockValuation(\n  companyName: \'Global Warehouse\',\n)',
-          onExcel: () => run(
-            InventoryReportPresets.stockValuation(
-              companyName: 'Global Warehouse Logistics',
-            ),
-            inventoryData,
-            pdf: false,
-          ),
-          onPdf: () => run(
-            InventoryReportPresets.stockValuation(
-              companyName: 'Global Warehouse Logistics',
-            ),
-            inventoryData,
-            pdf: true,
-          ),
-        ),
-        _PresetCard(
-          title: 'HR Headcount & Compensation Overview',
-          category: 'HR',
-          icon: Icons.people_outline,
-          color: const Color(0xFF00796B),
-          description:
-              'Employee roster with tenure, department headcount, '
-              'active/inactive status, and compensation ranges.',
-          recordCount: hrData.length,
-          apiCall:
-              'HRReportPresets.headcountOverview(\n  companyName: \'Acme Corp\',\n)',
-          onExcel: () => run(
-            HrReportPresets.headcountSummary(companyName: 'Acme Corp'),
-            hrData,
-            pdf: false,
-          ),
-          onPdf: () => run(
-            HrReportPresets.headcountSummary(companyName: 'Acme Corp'),
-            hrData,
-            pdf: true,
-          ),
+          ],
         ),
       ],
+    );
+  }
+
+  Widget _summaryRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: color ?? Colors.grey.shade800,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: color ?? Colors.grey.shade900,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2176,127 +2740,6 @@ class _InfoBanner extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PresetCard extends StatelessWidget {
-  const _PresetCard({
-    required this.title,
-    required this.category,
-    required this.icon,
-    required this.color,
-    required this.description,
-    required this.recordCount,
-    required this.apiCall,
-    required this.onExcel,
-    required this.onPdf,
-  });
-
-  final String title;
-  final String category;
-  final IconData icon;
-  final Color color;
-  final String description;
-  final int recordCount;
-  final String apiCall;
-  final VoidCallback onExcel;
-  final VoidCallback onPdf;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: color.withValues(alpha: 0.12),
-                  child: Icon(icon, color: color, size: 20),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        category.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Chip(
-                  label: Text(
-                    '$recordCount rows',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  padding: EdgeInsets.zero,
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              description,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                apiCall,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 11,
-                  color: Color(0xFF64FFDA),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton.icon(
-                  icon: const Icon(
-                    Icons.table_view,
-                    size: 16,
-                    color: Colors.green,
-                  ),
-                  label: const Text('Excel'),
-                  onPressed: onExcel,
-                ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  icon: const Icon(Icons.picture_as_pdf, size: 16),
-                  label: const Text('PDF'),
-                  onPressed: onPdf,
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

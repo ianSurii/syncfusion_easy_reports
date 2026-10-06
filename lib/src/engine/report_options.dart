@@ -1,3 +1,5 @@
+import '../models/report_models.dart';
+
 /// How wide tables should be handled in PDF rendering.
 enum PdfWideTableStrategy {
   /// Keep the current orientation and proportionally shrink column widths to fit the page.
@@ -51,6 +53,21 @@ class ExcelExportOptions {
   /// Labels for signature blocks (e.g. `['Prepared By', 'Checked By', 'Approved By', 'Authorized By']`).
   final List<String> signatureLabels;
 
+  /// Structured signatures with optional names and dates.
+  final List<ReportSignature>? signatures;
+
+  /// Layout orientation for signatures (adaptive, horizontal, vertical/transposed, split).
+  final SignatureLayout signatureLayout;
+
+  /// Visual border style for data tables (clean, horizontalOnly, headerAndTotalOnly, grid, none).
+  final TableBorderStyle tableBorderStyle;
+
+  /// Optional bottom financial summaries (Subtotal, Taxes, Total, Balance Due).
+  final List<ReportSummaryItem>? summaryItems;
+
+  /// Optional wire payment / bank remittance details and terms printed below the table.
+  final ReportPaymentDetails? paymentDetails;
+
   const ExcelExportOptions({
     this.includeSummarySheet = true,
     this.freezeHeaderRow = true,
@@ -65,7 +82,20 @@ class ExcelExportOptions {
     this.customNumberFormats,
     this.showSignatures = false,
     this.signatureLabels = const ['Prepared By', 'Approved By'],
+    this.signatures,
+    this.signatureLayout = SignatureLayout.adaptive,
+    this.tableBorderStyle = TableBorderStyle.clean,
+    this.summaryItems,
+    this.paymentDetails,
   });
+
+  /// Resolves the active list of [ReportSignature] items.
+  List<ReportSignature> get effectiveSignatures {
+    if (signatures != null && signatures!.isNotEmpty) {
+      return signatures!;
+    }
+    return signatureLabels.map((l) => ReportSignature(title: l)).toList();
+  }
 }
 
 /// Options specific to Adobe PDF (.pdf) exports.
@@ -131,6 +161,21 @@ class PdfExportOptions {
   /// Labels for signature blocks (e.g. `['Prepared By', 'Checked By', 'Approved By']`).
   final List<String> signatureLabels;
 
+  /// Structured signatures with optional names and dates.
+  final List<ReportSignature>? signatures;
+
+  /// Layout orientation for signatures (adaptive, horizontal, vertical/transposed, split).
+  final SignatureLayout signatureLayout;
+
+  /// Visual border style for data tables (clean, horizontalOnly, headerAndTotalOnly, grid, none).
+  final TableBorderStyle tableBorderStyle;
+
+  /// Optional bottom financial summaries (Subtotal, Taxes, Total, Balance Due).
+  final List<ReportSummaryItem>? summaryItems;
+
+  /// Optional wire payment / bank remittance details and terms printed below the table.
+  final ReportPaymentDetails? paymentDetails;
+
   const PdfExportOptions({
     this.pageSize = 'A4',
     this.orientation = 'portrait',
@@ -153,7 +198,32 @@ class PdfExportOptions {
         'No records found matching the specified criteria.',
     this.showSignatures = false,
     this.signatureLabels = const ['Prepared By', 'Approved By'],
+    this.signatures,
+    this.signatureLayout = SignatureLayout.adaptive,
+    this.tableBorderStyle = TableBorderStyle.clean,
+    this.summaryItems,
+    this.paymentDetails,
   });
+
+  /// Resolves the active list of [ReportSignature] items.
+  List<ReportSignature> get effectiveSignatures {
+    if (signatures != null && signatures!.isNotEmpty) {
+      return signatures!;
+    }
+    return signatureLabels.map((l) => ReportSignature(title: l)).toList();
+  }
+
+  /// Resolves the signature layout: if [SignatureLayout.adaptive], automatically
+  /// stacks signatures vertically in portrait orientation to prevent page crowding.
+  SignatureLayout resolveSignatureLayout() {
+    if (signatureLayout != SignatureLayout.adaptive) {
+      return signatureLayout;
+    }
+    if (orientation.toLowerCase() == 'portrait') {
+      return SignatureLayout.vertical; // Stacked in portrait
+    }
+    return SignatureLayout.split;
+  }
 
   /// Validates that encryption and PDF/A are not simultaneously requested.
   void validate() {

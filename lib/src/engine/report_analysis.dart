@@ -1,3 +1,4 @@
+import '../models/report_models.dart';
 import 'report_measure.dart';
 
 /// Type of analysis layout and processing.
@@ -277,6 +278,9 @@ class ReportAnalysis {
   /// Additional metadata or KPI cards attached to this analysis.
   final Map<String, dynamic>? customData;
 
+  /// Optional chart or graph configuration rendered alongside this analysis.
+  final ReportChartConfig? chart;
+
   const ReportAnalysis({
     required this.id,
     required this.title,
@@ -298,6 +302,7 @@ class ReportAnalysis {
     this.sheetPerCategory = false,
     this.missingCategoryLabel = 'Unassigned',
     this.customData,
+    this.chart,
   });
 
   /// Factory for creating a flat record detail listing.
@@ -311,6 +316,7 @@ class ReportAnalysis {
     bool showGrandTotal = true,
     List<ReportMeasure> grandTotalMeasures = const [],
     Map<String, dynamic>? customData,
+    ReportChartConfig? chart,
   }) {
     return ReportAnalysis(
       id: id,
@@ -323,6 +329,7 @@ class ReportAnalysis {
       showGrandTotal: showGrandTotal,
       measures: grandTotalMeasures,
       customData: customData,
+      chart: chart,
     );
   }
 
@@ -344,6 +351,7 @@ class ReportAnalysis {
     bool sheetPerCategory = false,
     String missingCategoryLabel = 'Unassigned',
     Map<String, dynamic>? customData,
+    ReportChartConfig? chart,
   }) {
     return ReportAnalysis(
       id: id,
@@ -363,6 +371,7 @@ class ReportAnalysis {
       sheetPerCategory: sheetPerCategory,
       missingCategoryLabel: missingCategoryLabel,
       customData: customData,
+      chart: chart,
     );
   }
 
