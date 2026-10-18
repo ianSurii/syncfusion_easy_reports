@@ -15,22 +15,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build-and-deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Pages
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Package & Example Dependencies
+        run: |
+          flutter pub get
+          cd example && flutter pub get
+
+      - name: Build Web Application
+        run: |
+          cd example
+          flutter build web --release --base-href "/syncfusion_easy_reports/"
+
+      - name: Prepare Pages Artifacts
+        run: |
+          # Disable Jekyll processing on GitHub Pages to serve canvaskit, fonts, and assets properly
+          touch example/build/web/.nojekyll
+
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact
+      - name: Upload Web Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'docs/'
+          path: 'example/build/web/'
 
       - name: Deploy to GitHub Pages
         id: deployment

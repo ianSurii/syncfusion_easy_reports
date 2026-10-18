@@ -1,44 +1,73 @@
 // ignore_for_file: avoid_print
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:syncfusion_easy_reports/syncfusion_easy_reports.dart';
 
-// ─── Entry point ──────────────────────────────────────────────────────────────
 void main() => runApp(const EasyReportsShowcase());
 
-// ─── App shell ────────────────────────────────────────────────────────────────
-class EasyReportsShowcase extends StatelessWidget {
+class EasyReportsShowcase extends StatefulWidget {
   const EasyReportsShowcase({super.key});
+
+  @override
+  State<EasyReportsShowcase> createState() => _EasyReportsShowcaseState();
+}
+
+class _EasyReportsShowcaseState extends State<EasyReportsShowcase> {
+  // Default to Dark Mode as requested
+  ThemeMode _themeMode = ThemeMode.dark;
+
+  void _toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.dark
+          ? ThemeMode.light
+          : ThemeMode.dark;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'syncfusion_easy_reports — Full API Showcase',
+      title: 'syncfusion_easy_reports — 10x Showcase',
       debugShowCheckedModeBanner: false,
+      themeMode: _themeMode,
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E),
+          seedColor: const Color(0xFF1565C0),
           brightness: Brightness.light,
         ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E),
+          seedColor: const Color(0xFF3B82F6),
           brightness: Brightness.dark,
         ),
       ),
-      themeMode: ThemeMode.system,
-      home: const ShowcaseHome(),
+      home: ShowcaseHomePage(
+        onToggleTheme: _toggleTheme,
+        isDark: _themeMode == ThemeMode.dark,
+      ),
     );
   }
 }
 
-// ─── Fictional label ─────────────────────────────────────────────────────────
-const _kFictional = '⚠ Fictional data — demo only';
+// ═══════════════════════════════════════════════════════════════════════════════
+// DATA MODELS & PRESETS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── Typed Dart model ─────────────────────────────────────────────────────────
-/// A real Dart class — demonstrates ReportColumn typed accessors.
+enum ReportUseCase {
+  invoice,
+  payroll,
+  salesCrossTab,
+  agingValuation,
+  clinicalAudit,
+}
+
 class Employee {
   const Employee({
     required this.id,
@@ -48,9 +77,6 @@ class Employee {
     required this.basicPay,
     required this.allowances,
     required this.deductions,
-    required this.joinedDate,
-    required this.isActive,
-    required this.commissionRate,
   });
 
   final String id;
@@ -60,2687 +86,2891 @@ class Employee {
   final double basicPay;
   final double allowances;
   final double deductions;
-  final DateTime joinedDate;
-  final bool isActive;
-  final double commissionRate;
 
   double get netPay => basicPay + allowances - deductions;
 }
 
-// ─── Datasets ─────────────────────────────────────────────────────────────────
 final List<Employee> _employees = [
-  Employee(
-    id: 'E01',
+  const Employee(
+    id: 'EMP-101',
     name: 'Eleanor Vance',
     department: 'Engineering',
-    bank: 'Chase Bank',
+    bank: 'Standard Chartered',
     basicPay: 9200,
     allowances: 1200,
     deductions: 850,
-    joinedDate: DateTime(2021, 3, 15),
-    isActive: true,
-    commissionRate: 0.05,
   ),
-  Employee(
-    id: 'E02',
+  const Employee(
+    id: 'EMP-102',
     name: 'Marcus Brody',
     department: 'Engineering',
-    bank: 'Chase Bank',
+    bank: 'Standard Chartered',
     basicPay: 8400,
     allowances: 800,
     deductions: 720,
-    joinedDate: DateTime(2022, 6, 1),
-    isActive: true,
-    commissionRate: 0.05,
   ),
-  Employee(
-    id: 'E03',
+  const Employee(
+    id: 'EMP-103',
     name: 'Sophia Chen',
     department: 'Marketing',
     bank: 'Citibank',
     basicPay: 7600,
     allowances: 1500,
     deductions: 600,
-    joinedDate: DateTime(2020, 11, 20),
-    isActive: true,
-    commissionRate: 0.08,
   ),
-  Employee(
-    id: 'E04',
+  const Employee(
+    id: 'EMP-104',
     name: 'Lucas Miller',
     department: 'Marketing',
     bank: 'Citibank',
     basicPay: 6900,
     allowances: 900,
     deductions: 550,
-    joinedDate: DateTime(2023, 1, 10),
-    isActive: true,
-    commissionRate: 0.08,
   ),
-  Employee(
-    id: 'E05',
+  const Employee(
+    id: 'EMP-105',
     name: 'Amara Okafor',
     department: 'Sales',
-    bank: 'Wells Fargo',
+    bank: 'Barclays',
     basicPay: 6500,
     allowances: 3200,
     deductions: 480,
-    joinedDate: DateTime(2022, 8, 5),
-    isActive: true,
-    commissionRate: 0.12,
   ),
-  Employee(
-    id: 'E06',
+  const Employee(
+    id: 'EMP-106',
     name: 'Julian Hayes',
     department: 'Finance',
-    bank: 'Bank of America',
+    bank: 'JPMorgan Chase',
     basicPay: 8800,
     allowances: 600,
     deductions: 910,
-    joinedDate: DateTime(2019, 5, 12),
-    isActive: false,
-    commissionRate: 0.00,
   ),
-  Employee(
-    id: 'E07',
+  const Employee(
+    id: 'EMP-107',
     name: 'Zoe Patel',
     department: 'Engineering',
-    bank: 'Chase Bank',
-    basicPay: 7900,
+    bank: 'Standard Chartered',
+    basicPay: 7800,
     allowances: 950,
-    deductions: 680,
-    joinedDate: DateTime(2024, 2, 1),
-    isActive: true,
-    commissionRate: 0.05,
-  ),
-  Employee(
-    id: 'E08',
-    name: 'Liam Connor',
-    department: 'Sales',
-    bank: 'Wells Fargo',
-    basicPay: 6200,
-    allowances: 2800,
-    deductions: 430,
-    joinedDate: DateTime(2023, 9, 18),
-    isActive: true,
-    commissionRate: 0.12,
+    deductions: 880,
   ),
 ];
 
-final List<Map<String, dynamic>> _deductionsData = [
+final List<Map<String, dynamic>> _invoiceItems = [
   {
-    'employeeId': 'E01',
-    'employeeName': 'Eleanor Vance',
-    'department': 'Engineering',
-    'deductionType': 'KCB Bank Loan',
-    'amount': 350.0,
-    'employerContribution': 0.0,
+    'item': 'Senior Enterprise Architecture & Consulting',
+    'category': 'Architecture',
+    'hours': 40,
+    'rate': 185.0,
+    'amount': 7400.0,
   },
   {
-    'employeeId': 'E02',
-    'employeeName': 'Marcus Brody',
-    'department': 'Engineering',
-    'deductionType': 'KCB Bank Loan',
-    'amount': 400.0,
-    'employerContribution': 0.0,
+    'item': 'Flutter Engine & High-Performance Dart Core',
+    'category': 'Core Engine',
+    'hours': 35,
+    'rate': 130.0,
+    'amount': 4550.0,
   },
   {
-    'employeeId': 'E03',
-    'employeeName': 'Sophia Chen',
-    'department': 'Marketing',
-    'deductionType': 'Equity Bank Loan',
-    'amount': 500.0,
-    'employerContribution': 0.0,
+    'item': 'Automated Multi-Format Export Pipelines',
+    'category': 'Data Pipelines',
+    'hours': 20,
+    'rate': 115.0,
+    'amount': 2300.0,
   },
   {
-    'employeeId': 'E04',
-    'employeeName': 'Lucas Miller',
-    'department': 'Marketing',
-    'deductionType': 'Equity Bank Loan',
-    'amount': 450.0,
-    'employerContribution': 0.0,
-  },
-  {
-    'employeeId': 'E01',
-    'employeeName': 'Eleanor Vance',
-    'department': 'Engineering',
-    'deductionType': 'Housing Levy',
-    'amount': 150.0,
-    'employerContribution': 150.0,
-  },
-  {
-    'employeeId': 'E02',
-    'employeeName': 'Marcus Brody',
-    'department': 'Engineering',
-    'deductionType': 'Housing Levy',
-    'amount': 130.0,
-    'employerContribution': 130.0,
-  },
-  {
-    'employeeId': 'E05',
-    'employeeName': 'Amara Okafor',
-    'department': 'Sales',
-    'deductionType': 'SHA / SHIF',
-    'amount': 200.0,
-    'employerContribution': 0.0,
-  },
-  {
-    'employeeId': 'E07',
-    'employeeName': 'Zoe Patel',
-    'department': 'Engineering',
-    'deductionType': 'SHA / SHIF',
-    'amount': 180.0,
-    'employerContribution': 0.0,
-  },
-  {
-    'employeeId': 'E06',
-    'employeeName': 'Julian Hayes',
-    'department': 'Finance',
-    'deductionType': 'PAYE Tax',
-    'amount': 910.0,
-    'employerContribution': 0.0,
+    'item': 'Continuous Integration Security & Compliance',
+    'category': 'DevOps',
+    'hours': 12,
+    'rate': 125.0,
+    'amount': 1500.0,
   },
 ];
 
 final List<Map<String, dynamic>> _salesData = [
   {
-    'orderId': 'ORD-1001',
-    'salesperson': 'Alice Smith',
+    'rep': 'Alice Chen',
     'region': 'North America',
-    'category': 'Enterprise Software',
-    'quantity': 12,
-    'revenue': 48000.0,
-    'profit': 28800.0,
-    'date': DateTime(2026, 7, 5),
+    'product': 'Cloud Suite',
+    'quarter': 'Q1',
+    'revenue': 42000.0,
   },
   {
-    'orderId': 'ORD-1002',
-    'salesperson': 'David Kim',
-    'region': 'Asia Pacific',
-    'category': 'Cloud Infrastructure',
-    'quantity': 5,
-    'revenue': 25000.0,
-    'profit': 15000.0,
-    'date': DateTime(2026, 7, 12),
-  },
-  {
-    'orderId': 'ORD-1003',
-    'salesperson': 'Elena Rostova',
-    'region': 'Europe',
-    'category': 'Enterprise Software',
-    'quantity': 8,
-    'revenue': 32000.0,
-    'profit': 19200.0,
-    'date': DateTime(2026, 8, 3),
-  },
-  {
-    'orderId': 'ORD-1004',
-    'salesperson': 'Alice Smith',
+    'rep': 'Alice Chen',
     'region': 'North America',
-    'category': 'Consulting',
-    'quantity': 20,
-    'revenue': 30000.0,
-    'profit': 12000.0,
-    'date': DateTime(2026, 8, 15),
+    'product': 'Cloud Suite',
+    'quarter': 'Q2',
+    'revenue': 58000.0,
   },
   {
-    'orderId': 'ORD-1005',
-    'salesperson': 'David Kim',
-    'region': 'Asia Pacific',
-    'category': 'Enterprise Software',
-    'quantity': 15,
-    'revenue': 60000.0,
-    'profit': 36000.0,
-    'date': DateTime(2026, 9, 2),
+    'rep': 'Bob Smith',
+    'region': 'EMEA',
+    'product': 'DB Core',
+    'quarter': 'Q1',
+    'revenue': 31000.0,
   },
   {
-    'orderId': 'ORD-1006',
-    'salesperson': 'Elena Rostova',
-    'region': 'Europe',
-    'category': 'Cloud Infrastructure',
-    'quantity': 9,
-    'revenue': 45000.0,
-    'profit': 27000.0,
-    'date': DateTime(2026, 9, 20),
+    'rep': 'Bob Smith',
+    'region': 'EMEA',
+    'product': 'DB Core',
+    'quarter': 'Q2',
+    'revenue': 49000.0,
   },
   {
-    'orderId': 'ORD-1007',
-    'salesperson': 'Alice Smith',
-    'region': 'North America',
-    'category': 'Enterprise Software',
-    'quantity': 6,
-    'revenue': 24000.0,
-    'profit': 14400.0,
-    'date': DateTime(2026, 10, 4),
+    'rep': 'Carlos Mendez',
+    'region': 'LATAM',
+    'product': 'AI Analytics',
+    'quarter': 'Q1',
+    'revenue': 27500.0,
   },
   {
-    'orderId': 'ORD-1008',
-    'salesperson': 'David Kim',
-    'region': 'Asia Pacific',
-    'category': 'Consulting',
-    'quantity': 18,
-    'revenue': 27000.0,
-    'profit': 10800.0,
-    'date': DateTime(2026, 10, 9),
+    'rep': 'Carlos Mendez',
+    'region': 'LATAM',
+    'product': 'AI Analytics',
+    'quarter': 'Q2',
+    'revenue': 36500.0,
+  },
+  {
+    'rep': 'Diana Prince',
+    'region': 'APAC',
+    'product': 'Cyber Security',
+    'quarter': 'Q1',
+    'revenue': 51000.0,
+  },
+  {
+    'rep': 'Diana Prince',
+    'region': 'APAC',
+    'product': 'Cyber Security',
+    'quarter': 'Q2',
+    'revenue': 64000.0,
   },
 ];
 
 final List<Map<String, dynamic>> _agingData = [
   {
-    'invoiceNumber': 'INV-8801',
-    'customer': 'Global Logistics Corp',
-    'daysOverdue': 12,
-    'amount': 14500.0,
-    'dueDate': DateTime(2026, 9, 15),
+    'client': 'Apex Global Ltd',
+    'invoice': 'INV-1091',
+    'amount': 14250.0,
+    'daysOverdue': 15,
+    'status': 'Current',
   },
   {
-    'invoiceNumber': 'INV-8802',
-    'customer': 'Vertex Digital Media',
+    'client': 'Blue Horizon Tech',
+    'invoice': 'INV-1044',
+    'amount': 8900.0,
     'daysOverdue': 42,
-    'amount': 8200.0,
-    'dueDate': DateTime(2026, 8, 16),
+    'status': '31-60 Days',
   },
   {
-    'invoiceNumber': 'INV-8803',
-    'customer': 'Apex Biotech Inc',
+    'client': 'Cascade Retail Partners',
+    'invoice': 'INV-0988',
+    'amount': 22500.0,
     'daysOverdue': 78,
-    'amount': 21400.0,
-    'dueDate': DateTime(2026, 7, 11),
+    'status': '60+ Days',
   },
   {
-    'invoiceNumber': 'INV-8804',
-    'customer': 'Starlight Retailers',
-    'daysOverdue': 115,
-    'amount': 36800.0,
-    'dueDate': DateTime(2026, 6, 4),
+    'client': 'Delta Logistics Hub',
+    'invoice': 'INV-1102',
+    'amount': 6400.0,
+    'daysOverdue': 8,
+    'status': 'Current',
   },
   {
-    'invoiceNumber': 'INV-8805',
-    'customer': 'Omni Health Systems',
-    'daysOverdue': 5,
-    'amount': 9300.0,
-    'dueDate': DateTime(2026, 9, 22),
-  },
-  {
-    'invoiceNumber': 'INV-8806',
-    'customer': 'Pinnacle Aerospace',
-    'daysOverdue': 55,
-    'amount': 18700.0,
-    'dueDate': DateTime(2026, 8, 3),
+    'client': 'Echo Innovations LLC',
+    'invoice': 'INV-1015',
+    'amount': 11300.0,
+    'daysOverdue': 51,
+    'status': '31-60 Days',
   },
 ];
 
-// ─── Home ─────────────────────────────────────────────────────────────────────
-class ShowcaseHome extends StatefulWidget {
-  const ShowcaseHome({super.key});
+final List<Map<String, dynamic>> _clinicalData = [
+  {
+    'patientId': 'PT-8801',
+    'department': 'Cardiology',
+    'physician': 'Dr. Sarah Lin',
+    'admissionDays': 4,
+    'billAmount': 5400.0,
+    'status': 'Discharged',
+  },
+  {
+    'patientId': 'PT-8802',
+    'department': 'Cardiology',
+    'physician': 'Dr. Sarah Lin',
+    'admissionDays': 7,
+    'billAmount': 8900.0,
+    'status': 'Inpatient',
+  },
+  {
+    'patientId': 'PT-8803',
+    'department': 'Neurology',
+    'physician': 'Dr. Robert Ross',
+    'admissionDays': 3,
+    'billAmount': 4200.0,
+    'status': 'Discharged',
+  },
+  {
+    'patientId': 'PT-8804',
+    'department': 'Orthopedics',
+    'physician': 'Dr. Emily Watson',
+    'admissionDays': 5,
+    'billAmount': 6750.0,
+    'status': 'Discharged',
+  },
+  {
+    'patientId': 'PT-8805',
+    'department': 'Pediatrics',
+    'physician': 'Dr. Michael Chang',
+    'admissionDays': 2,
+    'billAmount': 2100.0,
+    'status': 'Discharged',
+  },
+];
+
+const List<ReportSignature> _defaultSignatures = [
+  ReportSignature(
+    title: 'Prepared By',
+    name: 'Eleanor Vance (Senior Accountant)',
+    date: 'October 04, 2026',
+  ),
+  ReportSignature(
+    title: 'Checked By',
+    name: 'Marcus Brody (Finance Lead)',
+    date: 'October 04, 2026',
+  ),
+  ReportSignature(
+    title: 'Approved By',
+    name: 'Julian Hayes (VP Finance)',
+    date: 'October 05, 2026',
+  ),
+  ReportSignature(
+    title: 'Authorized By',
+    name: 'Amara Okafor (Managing Director)',
+    date: 'October 05, 2026',
+  ),
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ONE-PAGE SHOWCASE HOME
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class ShowcaseHomePage extends StatefulWidget {
+  const ShowcaseHomePage({
+    super.key,
+    required this.onToggleTheme,
+    required this.isDark,
+  });
+
+  final VoidCallback onToggleTheme;
+  final bool isDark;
+
   @override
-  State<ShowcaseHome> createState() => _ShowcaseHomeState();
+  State<ShowcaseHomePage> createState() => _ShowcaseHomePageState();
 }
 
-class _ShowcaseHomeState extends State<ShowcaseHome>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabs;
+class _ShowcaseHomePageState extends State<ShowcaseHomePage> {
+  ReportUseCase _selectedCase = ReportUseCase.invoice;
   bool _busy = false;
-  String _status = '';
+  String? _statusMessage;
+  ReportArtifact? _lastArtifact;
 
-  @override
-  void initState() {
-    super.initState();
-    _tabs = TabController(length: 6, vsync: this);
+  // Customization controls
+  TableBorderStyle _borderStyle = TableBorderStyle.clean;
+  PdfPageOrientation _pdfOrientation = PdfPageOrientation.portrait;
+  PaymentDetailsPosition _paymentPosition = PaymentDetailsPosition.belowSummary;
+  SignatureLayout _sigLayout = SignatureLayout.vertical;
+  bool _showSignatures = true;
+  bool _showPaymentDetails = true;
+  bool _showExcelGridlines = false;
+  bool _includeChart = true;
+  bool _sheetPerDept = true;
+  bool _isCrossTab = true;
+
+  ReportBranding _getBrandingForCurrentUseCase() {
+    switch (_selectedCase) {
+      case ReportUseCase.invoice:
+        return ReportBranding(
+          companyName: 'Apex Innovations Global',
+          address: '100 Enterprise Way, Suite 400, Tech District, CA 94016',
+          phone: '+1 (800) 555-0199',
+          email: 'billing@apexinnovations.com',
+          taxId: 'US-EIN-98-7654321',
+          logoPath: 'assets/logo.png',
+          layout: BrandingLayout.topRightLogo,
+        );
+      case ReportUseCase.payroll:
+        return ReportBranding(
+          companyName: 'Acme Enterprise Corporation',
+          address: '450 Silicon Boulevard, Tower A, Austin, TX 78701',
+          phone: '+1 (888) 420-1000',
+          email: 'payroll@acme-corp.internal',
+          taxId: 'US-EIN-54-3210987',
+          logoPath: 'assets/logo.png',
+          layout: BrandingLayout.topRightLogo,
+        );
+      case ReportUseCase.salesCrossTab:
+        return ReportBranding(
+          companyName: 'Global Strategic Holdings LLC',
+          address: '1 Wall Street Plaza, 28th Floor, New York, NY 10005',
+          phone: '+1 (212) 555-7800',
+          email: 'finance@globalstrategic.com',
+          taxId: 'US-EIN-12-3456789',
+          logoPath: 'assets/logo.png',
+          layout: BrandingLayout.topRightLogo,
+        );
+      case ReportUseCase.agingValuation:
+        return ReportBranding(
+          companyName: 'Summit Financial Risk Advisors',
+          address: '200 Financial Center, Suite 1200, Chicago, IL 60606',
+          phone: '+1 (312) 555-9920',
+          email: 'ar-risk@summitfinancial.com',
+          taxId: 'US-EIN-88-1122334',
+          logoPath: 'assets/logo.png',
+          layout: BrandingLayout.topRightLogo,
+        );
+      case ReportUseCase.clinicalAudit:
+        return ReportBranding(
+          companyName: 'St. Jude Metropolitan Health System',
+          address: '777 Medical Park Way, West Pavilion, Boston, MA 02115',
+          phone: '+1 (617) 555-4321',
+          email: 'audit@stjudehealth.org',
+          taxId: 'US-EIN-77-9988776',
+          logoPath: 'assets/logo.png',
+          layout: BrandingLayout.topRightLogo,
+        );
+    }
   }
 
-  @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
-  }
-
-  Future<void> _run(Future<void> Function() action) async {
+  Future<void> _exportReport(bool isPdf) async {
     setState(() {
       _busy = true;
-      _status = 'Generating…';
+      _statusMessage =
+          'Compiling and exporting ${isPdf ? "PDF" : "Excel"} report…';
     });
+
     try {
-      await action();
-    } catch (e) {
-      _status = 'Error: $e';
+      final ReportArtifact artifact = isPdf
+          ? await _generatePdfArtifact()
+          : await _generateExcelArtifact();
+
+      if (!kIsWeb && !Platform.environment.containsKey('FLUTTER_TEST')) {
+        try {
+          await ReportSaver().save(artifact);
+        } catch (_) {}
+      }
+
+      setState(() {
+        _lastArtifact = artifact;
+        _statusMessage =
+            'Successfully exported ${artifact.filename} (${artifact.formattedSize})';
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(backgroundColor: Colors.red.shade700, content: Text('$e')),
-        );
-        setState(() => _busy = false);
-        return;
-      }
-    }
-    if (mounted) setState(() => _busy = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.green.shade700,
-          content: Text(_status),
-        ),
-      );
-    }
-  }
-
-  Future<void> _save(ReportArtifact a) async {
-    await ReportSaver().save(a);
-    _status = 'Saved: ${a.filename} (${a.formattedSize})';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'syncfusion_easy_reports',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-            ),
-            Text(
-              'Full API Showcase',
-              style: TextStyle(fontSize: 11, color: Colors.white70),
-            ),
-          ],
-        ),
-        bottom: TabBar(
-          controller: _tabs,
-          isScrollable: true,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          indicatorColor: Colors.amber,
-          tabs: const [
-            Tab(icon: Icon(Icons.model_training), text: 'Typed Models'),
-            Tab(icon: Icon(Icons.functions), text: 'All Measures'),
-            Tab(icon: Icon(Icons.filter_alt), text: 'Filter & Sort'),
-            Tab(icon: Icon(Icons.pivot_table_chart), text: 'CrossTab & Date'),
-            Tab(icon: Icon(Icons.bolt), text: 'EasyReport'),
-            Tab(icon: Icon(Icons.receipt_long), text: 'Clean Invoice'),
-          ],
-        ),
-      ),
-      body: _busy
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 12),
-                  Text(
-                    _status,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            )
-          : TabBarView(
-              controller: _tabs,
+          SnackBar(
+            backgroundColor: const Color(0xFF2E7D32),
+            behavior: SnackBarBehavior.floating,
+            content: Row(
               children: [
-                _TypedModelsTab(onRun: _run, onSave: _save),
-                _AllMeasuresTab(onRun: _run, onSave: _save),
-                _FilterSortTab(onRun: _run, onSave: _save),
-                _CrossTabDateTab(onRun: _run, onSave: _save),
-                _EasyReportTab(onRun: _run, onSave: _save),
-                _InvoiceAndCleanStyleTab(onRun: _run, onSave: _save),
+                const Icon(Icons.check_circle_outline, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Exported ${artifact.filename} (${artifact.formattedSize})',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
             ),
+          ),
+        );
+      }
+    } catch (e, st) {
+      print('Export error: $e\n$st');
+      setState(() => _statusMessage = 'Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+            content: Text('Export failed: $e'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<ReportArtifact> _generatePdfArtifact() async {
+    final pdfOptions = PdfExportOptions(
+      pageOrientation: _pdfOrientation,
+      tableBorderStyle: _borderStyle,
+      showSignatures: _showSignatures,
+      signatureLayout: _sigLayout,
+      paymentDetailsPosition: _paymentPosition,
+      signatures: _showSignatures ? _defaultSignatures : const [],
+    );
+
+    final engine = ReportEngine();
+
+    switch (_selectedCase) {
+      case ReportUseCase.invoice:
+        return _buildInvoiceReport().exportPdf(options: pdfOptions);
+
+      case ReportUseCase.payroll:
+        final def = _buildPayrollDefinition();
+        final prep = await engine.prepare(definition: def, records: _employees);
+        return engine.exportPdf(prep, options: pdfOptions);
+
+      case ReportUseCase.salesCrossTab:
+        final def = _buildSalesDefinition();
+        final prep = await engine.prepare(definition: def, records: _salesData);
+        return engine.exportPdf(prep, options: pdfOptions);
+
+      case ReportUseCase.agingValuation:
+        final def = _buildAgingDefinition();
+        final prep = await engine.prepare(definition: def, records: _agingData);
+        return engine.exportPdf(prep, options: pdfOptions);
+
+      case ReportUseCase.clinicalAudit:
+        final def = _buildClinicalDefinition();
+        final prep = await engine.prepare(
+          definition: def,
+          records: _clinicalData,
+        );
+        return engine.exportPdf(prep, options: pdfOptions);
+    }
+  }
+
+  Future<ReportArtifact> _generateExcelArtifact() async {
+    final excelOptions = ExcelExportOptions(
+      showGridlines: _showExcelGridlines,
+      tableBorderStyle: _borderStyle,
+      showSignatures: _showSignatures,
+      signatureLayout: _sigLayout,
+      paymentDetailsPosition: _paymentPosition,
+      signatures: _showSignatures ? _defaultSignatures : const [],
+    );
+
+    final engine = ReportEngine();
+
+    switch (_selectedCase) {
+      case ReportUseCase.invoice:
+        return _buildInvoiceReport().exportExcel(options: excelOptions);
+
+      case ReportUseCase.payroll:
+        final def = _buildPayrollDefinition();
+        final prep = await engine.prepare(definition: def, records: _employees);
+        return engine.exportExcel(prep, options: excelOptions);
+
+      case ReportUseCase.salesCrossTab:
+        final def = _buildSalesDefinition();
+        final prep = await engine.prepare(definition: def, records: _salesData);
+        return engine.exportExcel(prep, options: excelOptions);
+
+      case ReportUseCase.agingValuation:
+        final def = _buildAgingDefinition();
+        final prep = await engine.prepare(definition: def, records: _agingData);
+        return engine.exportExcel(prep, options: excelOptions);
+
+      case ReportUseCase.clinicalAudit:
+        final def = _buildClinicalDefinition();
+        final prep = await engine.prepare(
+          definition: def,
+          records: _clinicalData,
+        );
+        return engine.exportExcel(prep, options: excelOptions);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REPORT DEFINITIONS WITH FULL COMPANY BRANDING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  EasyReport _buildInvoiceReport() {
+    final branding = _getBrandingForCurrentUseCase();
+    return EasyReport.fromMaps(
+      data: _invoiceItems,
+      title: 'Commercial Tax Invoice & Remittance',
+      subtitle: 'Invoice #INV-2026-0891 • Issue Date: October 05, 2026',
+      branding: branding,
+      tableBorderStyle: _borderStyle,
+      showGridlines: _showExcelGridlines,
+      pdfPageOrientation: _pdfOrientation,
+      paymentDetailsPosition: _paymentPosition,
+      includeChart: _includeChart,
+      groupBy: 'category',
+      chartConfig: _includeChart
+          ? const ReportChartConfig(
+              type: ReportChartType.bar,
+              title: 'Consulting Practice Breakdown',
+              categoryColumn: 'category',
+              measureColumn: 'hours',
+              topN: 4,
+            )
+          : null,
+      summaryItems: [
+        ReportSummaryItem.subtotal(15750.0, currencyCode: 'USD'),
+        ReportSummaryItem.tax('Tax / VAT (16%)', 2520.0, currencyCode: 'USD'),
+        const ReportSummaryItem(
+          label: 'Processing & Delivery',
+          value: 150.0,
+          currencyCode: 'USD',
+        ),
+        ReportSummaryItem.total(18420.0, currencyCode: 'USD'),
+        ReportSummaryItem.balanceDue(18420.0, currencyCode: 'USD'),
+      ],
+      paymentDetails: _showPaymentDetails
+          ? ReportPaymentDetails(
+              position: _paymentPosition,
+              bankName: 'Standard Chartered Bank',
+              accountName: 'Antigravity Enterprise Solutions Ltd',
+              accountNumber: '0108044921000',
+              branch: 'Westlands Commercial Hub',
+              swiftCode: 'SCBLKENX',
+              termsOrNotes: const [
+                'Payment terms: Net 30 days from date of invoice.',
+                'Please quote invoice number as payment reference.',
+              ],
+            )
+          : null,
+      showSignatures: _showSignatures,
+      signatureBlocks: _showSignatures ? _defaultSignatures : const [],
+      signatureLayout: _sigLayout,
+      currencyCode: 'USD',
+      currencyColumns: const ['rate', 'amount'],
     );
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAB 1 — Typed Models
-// Demonstrates: ReportColumn.text/money/date/number/boolean/percentage,
-//               generateExcel/generatePdf shorthand, sheetPerCategory
-// ═══════════════════════════════════════════════════════════════════════════════
-class _TypedModelsTab extends StatelessWidget {
-  const _TypedModelsTab({required this.onRun, required this.onSave});
-  final Future<void> Function(Future<void> Function()) onRun;
-  final Future<void> Function(ReportArtifact) onSave;
-
-  static ReportDefinition<Employee> _definition() {
+  ReportDefinition<Employee> _buildPayrollDefinition() {
+    final branding = _getBrandingForCurrentUseCase();
     return ReportDefinition<Employee>(
-      title: 'Monthly Compensation Register',
-      subtitle: 'Period: October 2026  |  $_kFictional',
-      branding: ReportBranding(
-        companyName: 'Acme Global Corporation',
-        address: '742 Evergreen Terrace, Springfield, OR 97477',
-        phone: '+1 (555) 867-5309',
-        email: 'payroll@acmeglobal.com',
-        logoPath: 'assets/logo.png',
-      ),
+      title: 'Corporate Payroll & Benefits Register',
+      subtitle: 'Monthly Executive Compensation & Statutory Schedule',
+      branding: branding,
       theme: ReportTheme.classicBlue(),
+      paymentDetails: _showPaymentDetails
+          ? ReportPaymentDetails(
+              position: _paymentPosition,
+              bankName: 'Citibank N.A.',
+              accountName: 'Acme Enterprise Corporate Payroll',
+              accountNumber: '88392019941',
+              branch: 'Corporate HQ Banking Division',
+              termsOrNotes: const [
+                'Statutory payroll taxes remitted under EIN 54-3210987.',
+                'Direct deposit settlement on the 28th of each calendar month.',
+              ],
+            )
+          : null,
       columns: [
-        ReportColumn.text(
+        ReportColumn<Employee>(
           id: 'id',
-          title: 'Emp ID',
-          value: (e) => e.id,
-          width: 60,
+          title: 'Employee ID',
+          accessor: (e) => e.id,
         ),
-        ReportColumn.text(id: 'name', title: 'Name', value: (e) => e.name),
-        ReportColumn.text(
-          id: 'dept',
+        ReportColumn<Employee>(
+          id: 'name',
+          title: 'Full Name',
+          accessor: (e) => e.name,
+        ),
+        ReportColumn<Employee>(
+          id: 'department',
           title: 'Department',
-          value: (e) => e.department,
+          accessor: (e) => e.department,
         ),
-        ReportColumn.text(id: 'bank', title: 'Bank', value: (e) => e.bank),
-        ReportColumn.money(
-          id: 'basic',
-          title: 'Basic Pay',
-          value: (e) => e.basicPay,
+        ReportColumn<Employee>(
+          id: 'basicPay',
+          title: 'Basic Salary',
+          accessor: (e) => e.basicPay,
+          type: ReportFieldType.money,
           currencyCode: 'USD',
         ),
-        ReportColumn.money(
-          id: 'allow',
+        ReportColumn<Employee>(
+          id: 'allowances',
           title: 'Allowances',
-          value: (e) => e.allowances,
+          accessor: (e) => e.allowances,
+          type: ReportFieldType.money,
           currencyCode: 'USD',
         ),
-        ReportColumn.money(
-          id: 'deduct',
+        ReportColumn<Employee>(
+          id: 'deductions',
           title: 'Deductions',
-          value: (e) => e.deductions,
+          accessor: (e) => e.deductions,
+          type: ReportFieldType.money,
           currencyCode: 'USD',
         ),
-        ReportColumn.money(
-          id: 'net',
-          title: 'Net Pay',
-          value: (e) => e.netPay,
+        ReportColumn<Employee>(
+          id: 'netPay',
+          title: 'Net Salary',
+          accessor: (e) => e.netPay,
+          type: ReportFieldType.money,
           currencyCode: 'USD',
-        ),
-        ReportColumn.percentage(
-          id: 'comm',
-          title: 'Comm %',
-          value: (e) => e.commissionRate * 100,
-        ),
-        ReportColumn.date(
-          id: 'joined',
-          title: 'Date Joined',
-          value: (e) => e.joinedDate,
-          dateFormat: 'dd-MMM-yyyy',
-        ),
-        ReportColumn.boolean(
-          id: 'active',
-          title: 'Status',
-          value: (e) => e.isActive,
-          trueLabel: 'Active',
-          falseLabel: 'Inactive',
         ),
       ],
       analyses: [
-        // 1. Flat detail register
-        ReportAnalysis.detail(
-          id: 'payroll_detail',
-          title: 'Payroll Register',
-          subtitle: 'All employee compensation line items',
-          showGrandTotal: true,
-          sort: [ReportSort.asc('dept'), ReportSort.asc('name')],
-        ),
-        // 2. Department summary — sheetPerCategory = one sheet per dept in Excel
-        ReportAnalysis.grouped(
-          id: 'dept_summary',
-          title: 'By Department',
-          subtitle: 'Headcount and totals per department',
-          groupBy: ['dept'],
-          sheetPerCategory: true,
-          detailColumns: ['id', 'name', 'basic', 'allow', 'deduct', 'net'],
+        ReportAnalysis(
+          id: 'dept_payroll',
+          title: 'Employee Salary Schedule',
+          groupBy: const ['department'],
+          sheetPerCategory: _sheetPerDept,
           measures: [
-            ReportMeasure.count(),
             ReportMeasure.sum(
-              column: 'basic',
+              column: 'basicPay',
               currencyCode: 'USD',
-              title: 'Total Basic',
+              title: 'Basic Sum',
             ),
             ReportMeasure.sum(
-              column: 'net',
+              column: 'allowances',
               currencyCode: 'USD',
-              title: 'Total Net',
+              title: 'Allowances Sum',
             ),
-            ReportMeasure.average(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Avg Net',
-            ),
-          ],
-          sort: [ReportSort.desc('net_sum')],
-          showGrandTotal: true,
-        ),
-        // 3. Bank payment schedule
-        ReportAnalysis.grouped(
-          id: 'bank_schedule',
-          title: 'Bank Schedule',
-          subtitle: 'Net pay grouped by bank for disbursement',
-          groupBy: ['bank'],
-          measures: [
-            ReportMeasure.count(),
             ReportMeasure.sum(
-              column: 'net',
+              column: 'deductions',
               currencyCode: 'USD',
-              title: 'Transfer Amount',
+              title: 'Deductions Sum',
             ),
+            ReportMeasure.sum(
+              column: 'netPay',
+              currencyCode: 'USD',
+              title: 'Net Sum',
+            ),
+            ReportMeasure.count(id: 'count', title: 'Headcount'),
           ],
           showGrandTotal: true,
-        ),
-      ],
-      excelOptions: const ExcelExportOptions(
-        includeSummarySheet: true,
-        freezeHeaderRow: true,
-        enableAutoFilter: true,
-        showSignatures: true,
-        signatureLayout: SignatureLayout.split,
-        signatures: [
-          ReportSignature(
-            title: 'Prepared By',
-            name: 'Eleanor Vance (Senior Accountant)',
-            date: 'October 04, 2026',
-          ),
-          ReportSignature(
-            title: 'Checked By',
-            name: 'Marcus Brody (Finance Lead)',
-            date: 'October 04, 2026',
-          ),
-          ReportSignature(
-            title: 'Approved By',
-            name: 'Julian Hayes (VP Finance)',
-            date: 'October 05, 2026',
-            isRightAligned: true,
-          ),
-          ReportSignature(
-            title: 'Authorized By',
-            name: 'Amara Okafor (Managing Director)',
-            date: 'October 05, 2026',
-            isRightAligned: true,
-          ),
-        ],
-      ),
-      pdfOptions: const PdfExportOptions(
-        showSignatures: true,
-        showPageNumbers: true,
-        repeatHeaders: true,
-        signatureLayout: SignatureLayout.split,
-        signatures: [
-          ReportSignature(
-            title: 'Prepared By',
-            name: 'Eleanor Vance (Senior Accountant)',
-            date: 'October 04, 2026',
-          ),
-          ReportSignature(
-            title: 'Checked By',
-            name: 'Marcus Brody (Finance Lead)',
-            date: 'October 04, 2026',
-          ),
-          ReportSignature(
-            title: 'Approved By',
-            name: 'Julian Hayes (VP Finance)',
-            date: 'October 05, 2026',
-            isRightAligned: true,
-          ),
-          ReportSignature(
-            title: 'Authorized By',
-            name: 'Amara Okafor (Managing Director)',
-            date: 'October 05, 2026',
-            isRightAligned: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final def = _definition();
-    final engine = ReportEngine();
-    return _TabShell(
-      feature: 'Typed Dart Models',
-      description:
-          'Define a report against a typed Dart class (Employee). '
-          'Columns use typed lambdas — zero reflection, compile-time safe. '
-          'Demonstrates sheetPerCategory (one Excel tab per department).',
-      badge: '${_employees.length} employees',
-      snippets: const [
-        _CodeSnippet(
-          label: 'Typed accessor columns',
-          code:
-              'ReportColumn.money(\n'
-              '  id: \'net\', title: \'Net Pay\',\n'
-              '  value: (Employee e) => e.netPay,\n'
-              '  currencyCode: \'USD\',\n'
-              ')\n'
-              'ReportColumn.date(\n'
-              '  id: \'joined\', title: \'Date Joined\',\n'
-              '  value: (e) => e.joinedDate,\n'
-              '  dateFormat: \'dd-MMM-yyyy\',\n'
-              ')\n'
-              'ReportColumn.boolean(\n'
-              '  id: \'active\', title: \'Status\',\n'
-              '  value: (e) => e.isActive,\n'
-              '  trueLabel: \'Active\', falseLabel: \'Inactive\',\n'
-              ')',
-        ),
-        _CodeSnippet(
-          label: 'sheetPerCategory — one Excel sheet per group',
-          code:
-              'ReportAnalysis.grouped(\n'
-              '  id: \'dept_summary\',\n'
-              '  groupBy: [\'dept\'],\n'
-              '  sheetPerCategory: true,  // ← key flag\n'
-              '  detailColumns: [\'id\', \'name\', \'net\'],\n'
-              '  measures: [\n'
-              '    ReportMeasure.count(),\n'
-              '    ReportMeasure.sum(column: \'net\'),\n'
-              '    ReportMeasure.average(column: \'net\'),\n'
-              '  ],\n'
-              ')',
-        ),
-        _CodeSnippet(
-          label: 'generateExcel shorthand (prepare + export in 1 call)',
-          code:
-              'final artifact = await engine.generateExcel(\n'
-              '  definition: definition,\n'
-              '  records: employees,\n'
-              ');\n'
-              'await ReportSaver().save(artifact);',
-        ),
-      ],
-      buttons: [
-        _ExportButton(
-          label: 'Export Excel (register + dept sheets + bank)',
-          icon: Icons.table_chart,
-          color: Colors.green,
-          onTap: () => onRun(() async {
-            final a = await engine.generateExcel(
-              definition: def,
-              records: _employees,
-            );
-            await onSave(a);
-          }),
-        ),
-        _ExportButton(
-          label: 'Export PDF (3 sections + signatures)',
-          icon: Icons.picture_as_pdf,
-          filled: true,
-          onTap: () => onRun(() async {
-            final a = await engine.generatePdf(
-              definition: def,
-              records: _employees,
-            );
-            await onSave(a);
-          }),
+          showSubtotals: true,
         ),
       ],
     );
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAB 2 — All Measures
-// Demonstrates: sum, count, average, min, max, percentageOfTotal,
-//               weightedAverage, formula, ReportAnalysis.summary (KPI card)
-// ═══════════════════════════════════════════════════════════════════════════════
-class _AllMeasuresTab extends StatelessWidget {
-  const _AllMeasuresTab({required this.onRun, required this.onSave});
-  final Future<void> Function(Future<void> Function()) onRun;
-  final Future<void> Function(ReportArtifact) onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    final engine = ReportEngine();
-
-    final def = ReportDefinition<Employee>(
-      title: 'Compensation Analytics — All Measures',
-      subtitle: _kFictional,
-      branding: ReportBranding(
-        companyName: 'Analytics Corp',
-        logoPath: 'assets/logo.png',
-      ),
-      theme: ReportTheme.forestGreen(),
+  ReportDefinition<Map<String, dynamic>> _buildSalesDefinition() {
+    final branding = _getBrandingForCurrentUseCase();
+    return ReportDefinition<Map<String, dynamic>>(
+      title: 'Executive Sales & Revenue Performance',
+      subtitle: 'Global Operations Performance Matrix',
+      branding: branding,
+      theme: ReportTheme.corporateDark(),
+      paymentDetails: _showPaymentDetails
+          ? ReportPaymentDetails(
+              position: _paymentPosition,
+              bankName: 'JPMorgan Chase & Co.',
+              accountName: 'Global Strategic Holdings LLC',
+              accountNumber: '994018274410',
+              branch: 'Global Operations Banking Hub',
+            )
+          : null,
       columns: [
-        ReportColumn.text(
-          id: 'dept',
-          title: 'Department',
-          value: (e) => e.department,
+        ReportColumn<Map<String, dynamic>>(
+          id: 'rep',
+          title: 'Sales Representative',
+          accessor: (m) => m['rep'],
         ),
-        ReportColumn.text(id: 'bank', title: 'Bank', value: (e) => e.bank),
-        ReportColumn.money(
-          id: 'basic',
-          title: 'Basic Pay',
-          value: (e) => e.basicPay,
-          currencyCode: 'USD',
+        ReportColumn<Map<String, dynamic>>(
+          id: 'region',
+          title: 'Region',
+          accessor: (m) => m['region'],
         ),
-        ReportColumn.money(
-          id: 'net',
-          title: 'Net Pay',
-          value: (e) => e.netPay,
-          currencyCode: 'USD',
+        ReportColumn<Map<String, dynamic>>(
+          id: 'product',
+          title: 'Product Line',
+          accessor: (m) => m['product'],
         ),
-        ReportColumn.number(
-          id: 'allow',
-          title: 'Allowances',
-          value: (e) => e.allowances,
+        ReportColumn<Map<String, dynamic>>(
+          id: 'quarter',
+          title: 'Fiscal Quarter',
+          accessor: (m) => m['quarter'],
         ),
-        ReportColumn.percentage(
-          id: 'comm',
-          title: 'Comm %',
-          value: (e) => e.commissionRate * 100,
-        ),
-      ],
-      analyses: [
-        // Executive KPI summary card
-        ReportAnalysis.summary(
-          id: 'kpi_card',
-          title: 'Executive KPI Summary',
-          subtitle: 'Whole-workforce aggregate metrics',
-          measures: [
-            ReportMeasure.count(title: 'Total Employees'),
-            ReportMeasure.sum(
-              column: 'basic',
-              currencyCode: 'USD',
-              title: 'Total Payroll',
-            ),
-            ReportMeasure.average(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Avg Net Pay',
-            ),
-            ReportMeasure.min(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Lowest Net Pay',
-            ),
-            ReportMeasure.max(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Highest Net Pay',
-            ),
-          ],
-        ),
-        // All measure types in a grouped analysis
-        ReportAnalysis.grouped(
-          id: 'full_measures',
-          title: 'All Measures by Department',
-          groupBy: ['dept'],
-          measures: [
-            ReportMeasure.count(),
-            ReportMeasure.sum(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Total Net',
-            ),
-            ReportMeasure.average(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Avg Net',
-            ),
-            ReportMeasure.min(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Min Net',
-            ),
-            ReportMeasure.max(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Max Net',
-            ),
-            ReportMeasure.percentageOfTotal(
-              column: 'net',
-              title: '% of Total Payroll',
-            ),
-            ReportMeasure.weightedAverage(
-              column: 'net',
-              weightedBy: 'allow',
-              title: 'Weighted Avg Net (by Allowances)',
-            ),
-            ReportMeasure.formula(
-              id: 'surplus_ratio',
-              title: 'Surplus Ratio',
-              dependsOn: ['net_sum', 'count'],
-              calculate: (vals) {
-                final total = vals['net_sum'] ?? 0;
-                final cnt = vals['count'] ?? 1;
-                return cnt > 0 ? total / cnt / 10000 : 0;
-              },
-              precision: 3,
-            ),
-          ],
-          showGrandTotal: true,
-        ),
-      ],
-      excelOptions: const ExcelExportOptions(includeSummarySheet: true),
-    );
-
-    return _TabShell(
-      feature: 'All ReportMeasure Types',
-      description:
-          'Every measure factory in one report: count, sum, average, min, max, '
-          'percentageOfTotal, weightedAverage, and custom formula. '
-          'Also demonstrates ReportAnalysis.summary for KPI cards.',
-      badge: '${_employees.length} records',
-      snippets: const [
-        _CodeSnippet(
-          label: 'ReportAnalysis.summary (KPI card)',
-          code:
-              'ReportAnalysis.summary(\n'
-              '  id: \'kpi_card\',\n'
-              '  title: \'Executive KPI Summary\',\n'
-              '  measures: [\n'
-              '    ReportMeasure.count(title: \'Total Employees\'),\n'
-              '    ReportMeasure.sum(column: \'basic\', currencyCode: \'USD\'),\n'
-              '    ReportMeasure.average(column: \'net\'),\n'
-              '    ReportMeasure.min(column: \'net\'),\n'
-              '    ReportMeasure.max(column: \'net\'),\n'
-              '  ],\n'
-              ')',
-        ),
-        _CodeSnippet(
-          label: 'percentageOfTotal + weightedAverage + formula',
-          code:
-              'ReportMeasure.percentageOfTotal(column: \'net\', title: \'% of Total\'),\n'
-              'ReportMeasure.weightedAverage(\n'
-              '  column: \'net\', weightedBy: \'allowances\',\n'
-              '),\n'
-              'ReportMeasure.formula(\n'
-              '  id: \'surplus_ratio\',\n'
-              '  dependsOn: [\'net_sum\', \'count\'],\n'
-              '  calculate: (vals) =>\n'
-              '    vals[\'net_sum\']! / vals[\'count\']! / 10000,\n'
-              ')',
-        ),
-      ],
-      buttons: [
-        _ExportButton(
-          label: 'Export Excel (KPI card + all measures)',
-          icon: Icons.table_chart,
-          color: Colors.green,
-          onTap: () => onRun(() async {
-            final a = await engine.generateExcel(
-              definition: def,
-              records: _employees,
-            );
-            await onSave(a);
-          }),
-        ),
-        _ExportButton(
-          label: 'Export PDF',
-          icon: Icons.picture_as_pdf,
-          filled: true,
-          onTap: () => onRun(() async {
-            final a = await engine.generatePdf(
-              definition: def,
-              records: _employees,
-            );
-            await onSave(a);
-          }),
-        ),
-      ],
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAB 3 — Filter, Sort, TopN, CategoryBuckets
-// ═══════════════════════════════════════════════════════════════════════════════
-class _FilterSortTab extends StatefulWidget {
-  const _FilterSortTab({required this.onRun, required this.onSave});
-  final Future<void> Function(Future<void> Function()) onRun;
-  final Future<void> Function(ReportArtifact) onSave;
-  @override
-  State<_FilterSortTab> createState() => _FilterSortTabState();
-}
-
-class _FilterSortTabState extends State<_FilterSortTab> {
-  String _filterDept = 'All';
-  bool _activeOnly = false;
-  String _sortColumn = 'net';
-  bool _ascending = false;
-  int _topN = 0;
-
-  ReportDefinition<Employee> _buildDef() {
-    final filters = <ReportFilter>[
-      if (_filterDept != 'All')
-        ReportFilter(
-          fieldId: 'dept',
-          operator: ReportFilterOperator.equals,
-          value: _filterDept,
-        ),
-      if (_activeOnly)
-        ReportFilter(
-          fieldId: 'active',
-          operator: ReportFilterOperator.equals,
-          value: true,
-        ),
-    ];
-
-    return ReportDefinition<Employee>(
-      title: 'Filtered Payroll Report',
-      subtitle:
-          'Dept: $_filterDept  |  Active only: $_activeOnly  |  '
-          'Sort: $_sortColumn ${_ascending ? "▲" : "▼"}  |  $_kFictional',
-      branding: ReportBranding(
-        companyName: 'Filter Demo Corp',
-        logoPath: 'assets/logo.png',
-      ),
-      theme: ReportTheme.slateGrey(),
-      columns: [
-        ReportColumn.text(id: 'id', title: 'ID', value: (e) => e.id),
-        ReportColumn.text(id: 'name', title: 'Name', value: (e) => e.name),
-        ReportColumn.text(
-          id: 'dept',
-          title: 'Department',
-          value: (e) => e.department,
-        ),
-        ReportColumn.money(
-          id: 'basic',
-          title: 'Basic Pay',
-          value: (e) => e.basicPay,
-          currencyCode: 'USD',
-        ),
-        ReportColumn.money(
-          id: 'net',
-          title: 'Net Pay',
-          value: (e) => e.netPay,
-          currencyCode: 'USD',
-        ),
-        ReportColumn.boolean(
-          id: 'active',
-          title: 'Active',
-          value: (e) => e.isActive,
-        ),
-      ],
-      analyses: [
-        ReportAnalysis.detail(
-          id: 'filtered_detail',
-          title: 'Filtered Records',
-          filters: filters,
-          sort: [ReportSort(fieldId: _sortColumn, isAscending: _ascending)],
-          showGrandTotal: true,
-        ),
-        ReportAnalysis.grouped(
-          id: 'ar_aging',
-          title: 'AR Aging — Invoices by Overdue Bucket',
-          subtitle: 'ReportCategoryBucket demo — $_kFictional',
-          groupBy: ['daysOverdue'],
-          categoryBuckets: {
-            'daysOverdue': const [
-              ReportCategoryBucket(
-                label: 'Current (0-30 days)',
-                min: 0,
-                max: 30,
-              ),
-              ReportCategoryBucket(label: '31-60 Days', min: 30, max: 60),
-              ReportCategoryBucket(label: '61-90 Days', min: 60, max: 90),
-              ReportCategoryBucket(label: '90+ Days (Critical)', min: 90),
-            ],
-          },
-          measures: [
-            ReportMeasure.count(title: 'Invoices'),
-            ReportMeasure.sum(
-              column: 'amount',
-              currencyCode: 'USD',
-              title: 'Total Overdue',
-            ),
-          ],
-          showGrandTotal: true,
-        ),
-        ReportAnalysis.grouped(
-          id: 'top_earners',
-          title: 'Top${_topN > 0 ? " $_topN" : ""} Depts by Net Pay',
-          groupBy: ['dept'],
-          measures: [
-            ReportMeasure.sum(
-              column: 'net',
-              currencyCode: 'USD',
-              title: 'Total Net',
-            ),
-            ReportMeasure.count(),
-          ],
-          topN: _topN > 0
-              ? ReportTopN(
-                  count: _topN,
-                  rankBy: 'net_sum',
-                  otherLabel: 'Other Depts',
-                )
-              : null,
-          sort: [ReportSort.desc('net_sum')],
-          showGrandTotal: true,
-        ),
-      ],
-      excelOptions: const ExcelExportOptions(includeSummarySheet: true),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final engine = ReportEngine();
-    const depts = ['All', 'Engineering', 'Marketing', 'Sales', 'Finance'];
-
-    return _TabShell(
-      feature: 'Filters, Sort, TopN & CategoryBuckets',
-      description:
-          'Pre-aggregation filters (equals, contains, between, isNull, inList…), '
-          'multi-key sorting, Top-N ranking with an "Other" roll-up, '
-          'and numeric category buckets (e.g. AR aging tiers).',
-      badge:
-          '${_employees.length} employees + ${_agingData.length} AR invoices',
-      header: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Configure Filters',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _filterDept,
-                      decoration: const InputDecoration(
-                        labelText: 'Department filter',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: depts
-                          .map(
-                            (d) => DropdownMenuItem(value: d, child: Text(d)),
-                          )
-                          .toList(),
-                      onChanged: (v) =>
-                          setState(() => _filterDept = v ?? 'All'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _sortColumn,
-                      decoration: const InputDecoration(
-                        labelText: 'Sort By',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'name', child: Text('Name')),
-                        DropdownMenuItem(value: 'net', child: Text('Net Pay')),
-                        DropdownMenuItem(
-                          value: 'basic',
-                          child: Text('Basic Pay'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'dept',
-                          child: Text('Department'),
-                        ),
-                      ],
-                      onChanged: (v) =>
-                          setState(() => _sortColumn = v ?? 'net'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      initialValue: _topN,
-                      decoration: const InputDecoration(
-                        labelText: 'Top-N Depts',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 0,
-                          child: Text('All departments'),
-                        ),
-                        DropdownMenuItem(value: 2, child: Text('Top 2')),
-                        DropdownMenuItem(value: 3, child: Text('Top 3')),
-                      ],
-                      onChanged: (v) => setState(() => _topN = v ?? 0),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Active employees only'),
-                      value: _activeOnly,
-                      onChanged: (v) => setState(() => _activeOnly = v),
-                    ),
-                  ),
-                  Expanded(
-                    child: SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ascending order'),
-                      value: _ascending,
-                      onChanged: (v) => setState(() => _ascending = v),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      snippets: const [
-        _CodeSnippet(
-          label: 'ReportFilter — multiple operators available',
-          code:
-              '// equals, notEquals, contains, greaterThan,\n'
-              '// lessThan, between, inList, isNull, isNotNull\n'
-              'ReportFilter(\n'
-              '  fieldId: \'dept\',\n'
-              '  operator: ReportFilterOperator.equals,\n'
-              '  value: \'Engineering\',\n'
-              ')\n'
-              '// Custom predicate\n'
-              'ReportFilter(\n'
-              '  fieldId: \'net\',\n'
-              '  customPredicate: (val, row) => (val as num) > 8000,\n'
-              ')',
-        ),
-        _CodeSnippet(
-          label: 'ReportCategoryBucket (AR aging)',
-          code:
-              'categoryBuckets: {\n'
-              '  \'daysOverdue\': [\n'
-              '    ReportCategoryBucket(label: \'0-30 days\',  max: 30),\n'
-              '    ReportCategoryBucket(label: \'31-60 Days\', min: 30, max: 60),\n'
-              '    ReportCategoryBucket(label: \'61-90 Days\', min: 60, max: 90),\n'
-              '    ReportCategoryBucket(label: \'90+ Critical\', min: 90),\n'
-              '  ],\n'
-              '}',
-        ),
-        _CodeSnippet(
-          label: 'ReportTopN',
-          code:
-              'topN: ReportTopN(\n'
-              '  count: 3,\n'
-              '  rankBy: \'net_sum\',     // measure ID\n'
-              '  otherLabel: \'Other\',   // rolls remaining into one row\n'
-              '),\n'
-              'sort: [ReportSort.desc(\'net_sum\')],',
-        ),
-      ],
-      buttons: [
-        _ExportButton(
-          label: 'Export Filtered Excel',
-          icon: Icons.table_chart,
-          color: Colors.green,
-          onTap: () => widget.onRun(() async {
-            final def = _buildDef();
-            final prepared = await engine.prepare(
-              definition: def,
-              records: _employees,
-            );
-            final a = await engine.exportExcel(prepared);
-            await widget.onSave(a);
-          }),
-        ),
-        _ExportButton(
-          label: 'Export Filtered PDF',
-          icon: Icons.picture_as_pdf,
-          filled: true,
-          onTap: () => widget.onRun(() async {
-            final def = _buildDef();
-            final prepared = await engine.prepare(
-              definition: def,
-              records: _employees,
-            );
-            final a = await engine.exportPdf(prepared);
-            await widget.onSave(a);
-          }),
-        ),
-      ],
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAB 4 — CrossTab & Date Grouping
-// ═══════════════════════════════════════════════════════════════════════════════
-class _CrossTabDateTab extends StatefulWidget {
-  const _CrossTabDateTab({required this.onRun, required this.onSave});
-  final Future<void> Function(Future<void> Function()) onRun;
-  final Future<void> Function(ReportArtifact) onSave;
-  @override
-  State<_CrossTabDateTab> createState() => _CrossTabDateTabState();
-}
-
-class _CrossTabDateTabState extends State<_CrossTabDateTab> {
-  String _interval = 'month';
-
-  @override
-  Widget build(BuildContext context) {
-    final engine = ReportEngine();
-    final interval = _interval == 'quarter'
-        ? ReportDateInterval.quarter
-        : ReportDateInterval.month;
-
-    final def = ReportDefinition<Map<String, dynamic>>(
-      title: 'Sales CrossTab & Monthly Trend',
-      subtitle: _kFictional,
-      branding: ReportBranding(
-        companyName: 'Apex Dynamics Inc',
-        logoPath: 'assets/logo.png',
-      ),
-      theme: ReportTheme.classicBlue(),
-      columns: [
-        ReportColumn.forMap(key: 'orderId', title: 'Order ID'),
-        ReportColumn.forMap(key: 'salesperson', title: 'Salesperson'),
-        ReportColumn.forMap(key: 'region', title: 'Region'),
-        ReportColumn.forMap(key: 'category', title: 'Category'),
-        ReportColumn.forMap(
-          key: 'quantity',
-          title: 'Qty',
-          type: ReportFieldType.number,
-        ),
-        ReportColumn.forMap(
-          key: 'revenue',
+        ReportColumn<Map<String, dynamic>>(
+          id: 'revenue',
           title: 'Revenue',
+          accessor: (m) => m['revenue'],
           type: ReportFieldType.money,
           currencyCode: 'USD',
-        ),
-        ReportColumn.forMap(
-          key: 'profit',
-          title: 'Profit',
-          type: ReportFieldType.money,
-          currencyCode: 'USD',
-        ),
-        ReportColumn.forMap(
-          key: 'date',
-          title: 'Date',
-          type: ReportFieldType.date,
         ),
       ],
       analyses: [
-        // Pivot: salesperson × region
-        ReportAnalysis.crossTab(
-          id: 'sales_pivot',
-          title: 'Revenue: Salesperson x Region',
-          subtitle: 'Total revenue per salesperson per region',
-          rowDimension: 'salesperson',
-          columnDimension: 'region',
-          measure: ReportMeasure.sum(
-            column: 'revenue',
-            currencyCode: 'USD',
-            title: 'Revenue',
-          ),
-          showGrandTotal: true,
-        ),
-        // Pivot: category × region
-        ReportAnalysis.crossTab(
-          id: 'profit_pivot',
-          title: 'Profit: Category x Region',
-          subtitle: 'Total profit per product category per region',
-          rowDimension: 'category',
-          columnDimension: 'region',
-          measure: ReportMeasure.sum(
-            column: 'profit',
-            currencyCode: 'USD',
-            title: 'Profit',
-          ),
-          showGrandTotal: true,
-        ),
-        // Date-grouped trend
-        ReportAnalysis.grouped(
-          id: 'date_trend',
-          title:
-              'Revenue Trend by ${_interval == "quarter" ? "Quarter" : "Month"}',
-          subtitle: 'Orders bucketed into time periods',
-          groupBy: ['date'],
-          dateGrouping: ReportDateGrouping(
-            columnId: 'date',
-            interval: interval,
-          ),
-          measures: [
-            ReportMeasure.count(title: 'Orders'),
-            ReportMeasure.sum(
+        if (_isCrossTab)
+          ReportAnalysis.crossTab(
+            id: 'sales_matrix',
+            title: 'Quarterly Regional Matrix',
+            rowDimension: 'region',
+            columnDimension: 'quarter',
+            measure: ReportMeasure.sum(
               column: 'revenue',
               currencyCode: 'USD',
               title: 'Revenue',
             ),
+            showGrandTotal: true,
+          )
+        else
+          ReportAnalysis(
+            id: 'sales_detail',
+            title: 'Sales Performance Detail',
+            groupBy: const ['region'],
+            measures: [
+              ReportMeasure.sum(
+                column: 'revenue',
+                currencyCode: 'USD',
+                title: 'Total Revenue',
+              ),
+              ReportMeasure.average(
+                column: 'revenue',
+                currencyCode: 'USD',
+                title: 'Average Deal',
+              ),
+              ReportMeasure.countNonNull(column: 'rep', title: 'Deal Count'),
+            ],
+            showGrandTotal: true,
+          ),
+      ],
+    );
+  }
+
+  ReportDefinition<Map<String, dynamic>> _buildAgingDefinition() {
+    final branding = _getBrandingForCurrentUseCase();
+    return ReportDefinition<Map<String, dynamic>>(
+      title: 'Accounts Receivable & Aging Valuation',
+      subtitle: 'Portfolio Risk Schedule & Outstanding Claims',
+      branding: branding,
+      theme: ReportTheme.slateGrey(),
+      paymentDetails: _showPaymentDetails
+          ? ReportPaymentDetails(
+              position: _paymentPosition,
+              bankName: 'Northern Trust Banking Group',
+              accountName: 'Summit Financial Escrow Account',
+              accountNumber: '44018274991',
+              branch: 'Chicago Financial District',
+              termsOrNotes: const [
+                'Late interest of 1.5% applied after 60 days overdue.',
+              ],
+            )
+          : null,
+      columns: [
+        ReportColumn<Map<String, dynamic>>(
+          id: 'client',
+          title: 'Client Name',
+          accessor: (m) => m['client'],
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'invoice',
+          title: 'Invoice Number',
+          accessor: (m) => m['invoice'],
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'status',
+          title: 'Aging Category',
+          accessor: (m) => m['status'],
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'daysOverdue',
+          title: 'Days Overdue',
+          accessor: (m) => m['daysOverdue'],
+          type: ReportFieldType.number,
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'amount',
+          title: 'Outstanding Balance',
+          accessor: (m) => m['amount'],
+          type: ReportFieldType.money,
+          currencyCode: 'USD',
+        ),
+      ],
+      analyses: [
+        ReportAnalysis(
+          id: 'ar_aging',
+          title: 'Portfolio Schedule by Aging Bracket',
+          groupBy: const ['status'],
+          measures: [
             ReportMeasure.sum(
-              column: 'profit',
+              column: 'amount',
               currencyCode: 'USD',
-              title: 'Profit',
+              title: 'Bracket Total',
+            ),
+            ReportMeasure.average(
+              column: 'daysOverdue',
+              title: 'Average Overdue Days',
+            ),
+            ReportMeasure.countNonNull(
+              column: 'invoice',
+              title: 'Invoice Count',
             ),
           ],
           showGrandTotal: true,
-        ),
-      ],
-      excelOptions: const ExcelExportOptions(includeSummarySheet: true),
-    );
-
-    return _TabShell(
-      feature: 'CrossTab (Pivot) & Date Grouping',
-      description:
-          'Build 2D pivot matrices with ReportAnalysis.crossTab. '
-          'Group time-series data by month or quarter using ReportDateGrouping. '
-          'Works on both typed models and Map datasets.',
-      badge: '${_salesData.length} sales orders',
-      header: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              const Text(
-                'Date Grouping:',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(width: 12),
-              ChoiceChip(
-                label: const Text('By Month'),
-                selected: _interval == 'month',
-                onSelected: (_) => setState(() => _interval = 'month'),
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('By Quarter'),
-                selected: _interval == 'quarter',
-                onSelected: (_) => setState(() => _interval = 'quarter'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      snippets: const [
-        _CodeSnippet(
-          label: 'ReportAnalysis.crossTab (2D Pivot)',
-          code:
-              'ReportAnalysis.crossTab(\n'
-              '  id: \'sales_pivot\',\n'
-              '  title: \'Revenue: Salesperson x Region\',\n'
-              '  rowDimension: \'salesperson\',\n'
-              '  columnDimension: \'region\',\n'
-              '  measure: ReportMeasure.sum(\n'
-              '    column: \'revenue\', currencyCode: \'USD\',\n'
-              '  ),\n'
-              '  showGrandTotal: true,\n'
-              ')',
-        ),
-        _CodeSnippet(
-          label: 'ReportDateGrouping',
-          code:
-              'ReportAnalysis.grouped(\n'
-              '  id: \'monthly_trend\',\n'
-              '  groupBy: [\'date\'],\n'
-              '  dateGrouping: ReportDateGrouping(\n'
-              '    columnId: \'date\',\n'
-              '    interval: ReportDateInterval.quarter,\n'
-              '    // or .month, .year\n'
-              '  ),\n'
-              '  measures: [\n'
-              '    ReportMeasure.sum(column: \'revenue\'),\n'
-              '  ],\n'
-              ')',
-        ),
-        _CodeSnippet(
-          label: 'ReportColumn.forMap (schema from Map keys)',
-          code:
-              '// No typed class needed — pull values by key\n'
-              'ReportColumn.forMap(\n'
-              '  key: \'revenue\',\n'
-              '  title: \'Revenue\',\n'
-              '  type: ReportFieldType.money,\n'
-              '  currencyCode: \'USD\',\n'
-              ')',
-        ),
-      ],
-      buttons: [
-        _ExportButton(
-          label: 'Export Excel (2 pivots + trend)',
-          icon: Icons.table_chart,
-          color: Colors.green,
-          onTap: () => widget.onRun(() async {
-            final a = await engine.generateExcel(
-              definition: def,
-              records: _salesData,
-            );
-            await widget.onSave(a);
-          }),
-        ),
-        _ExportButton(
-          label: 'Export PDF',
-          icon: Icons.picture_as_pdf,
-          filled: true,
-          onTap: () => widget.onRun(() async {
-            final a = await engine.generatePdf(
-              definition: def,
-              records: _salesData,
-            );
-            await widget.onSave(a);
-          }),
+          showSubtotals: true,
         ),
       ],
     );
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAB 5 — EasyReport facade
-// ═══════════════════════════════════════════════════════════════════════════════
-class _EasyReportTab extends StatefulWidget {
-  const _EasyReportTab({required this.onRun, required this.onSave});
-  final Future<void> Function(Future<void> Function()) onRun;
-  final Future<void> Function(ReportArtifact) onSave;
-  @override
-  State<_EasyReportTab> createState() => _EasyReportTabState();
-}
-
-class _EasyReportTabState extends State<_EasyReportTab> {
-  String _dataset = 'Deductions';
-  String _groupByField = 'deductionType';
-  bool _sheetPerCategory = true;
-  bool _crossTab = false;
-  bool _summaryCard = true;
-  bool _signatures = true;
-  bool _prefillSignatures = true;
-  BrandingLayout _brandingLayout = BrandingLayout.stacked;
-  SignatureLayout _signatureLayout = SignatureLayout.split;
-  String _theme = 'Classic Blue';
-
-  List<Map<String, dynamic>> get _data =>
-      _dataset == 'Deductions' ? _deductionsData : _salesData;
-
-  List<String> get _fields => _data.isNotEmpty ? _data.first.keys.toList() : [];
-
-  ReportTheme _themeObj() => switch (_theme) {
-    'Forest Green' => ReportTheme.forestGreen(),
-    'Corporate Dark' => ReportTheme.corporateDark(),
-    'Slate Grey' => ReportTheme.slateGrey(),
-    _ => ReportTheme.classicBlue(),
-  };
-
-  List<ReportSignature>? get _signatureBlocks => _signatures
-      ? [
-          ReportSignature(
-            title: 'Prepared By',
-            name: _prefillSignatures
-                ? 'Eleanor Vance (Senior Accountant)'
-                : null,
-            date: _prefillSignatures ? 'October 04, 2026' : null,
-          ),
-          ReportSignature(
-            title: 'Checked By',
-            name: _prefillSignatures ? 'Marcus Brody (Finance Lead)' : null,
-            date: _prefillSignatures ? 'October 04, 2026' : null,
-          ),
-          ReportSignature(
-            title: 'Approved By',
-            name: _prefillSignatures ? 'Julian Hayes (VP Finance)' : null,
-            date: _prefillSignatures ? 'October 05, 2026' : null,
-            isRightAligned: true,
-          ),
-          ReportSignature(
-            title: 'Authorized By',
-            name: _prefillSignatures
-                ? 'Amara Okafor (Managing Director)'
-                : null,
-            date: _prefillSignatures ? 'October 05, 2026' : null,
-            isRightAligned: true,
-          ),
-        ]
-      : null;
-
-  ReportBranding get _reportBranding => ReportBranding(
-    companyName: 'Acme Global Corporation',
-    address: '742 Evergreen Terrace, Springfield, OR 97477',
-    phone: '+1 (555) 867-5309',
-    email: 'finance@acmeglobal.com',
-    logoPath: 'assets/logo.png',
-    layout: _brandingLayout,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return _TabShell(
-      feature: 'EasyReport — Zero-Boilerplate Facade',
-      description:
-          'Pass any List<Map<String,dynamic>> — no columns, no analyses, no schema. '
-          'EasyReport.fromMaps auto-infers field types from key names and value types, '
-          'then generates a professional multi-sheet report.',
-      badge: '${_data.length} rows',
-      header: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Configure EasyReport',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _dataset,
-                      decoration: const InputDecoration(
-                        labelText: 'Dataset',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Deductions',
-                          child: Text('Deductions (9 rows)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Sales',
-                          child: Text('Sales Orders (8 rows)'),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() {
-                        _dataset = v ?? 'Deductions';
-                        _groupByField = _fields.first;
-                      }),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      key: ValueKey('$_dataset-$_groupByField'),
-                      initialValue: _fields.contains(_groupByField)
-                          ? _groupByField
-                          : _fields.firstOrNull,
-                      decoration: const InputDecoration(
-                        labelText: 'Group By',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _fields
-                          .map(
-                            (k) => DropdownMenuItem(value: k, child: Text(k)),
-                          )
-                          .toList(),
-                      onChanged: (v) =>
-                          setState(() => _groupByField = v ?? _groupByField),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _theme,
-                      decoration: const InputDecoration(
-                        labelText: 'Theme',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Classic Blue',
-                          child: Text('Classic Blue'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Forest Green',
-                          child: Text('Forest Green'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Corporate Dark',
-                          child: Text('Corporate Dark'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Slate Grey',
-                          child: Text('Slate Grey'),
-                        ),
-                      ],
-                      onChanged: (v) =>
-                          setState(() => _theme = v ?? 'Classic Blue'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<BrandingLayout>(
-                      initialValue: _brandingLayout,
-                      decoration: const InputDecoration(
-                        labelText: 'Branding Layout',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: BrandingLayout.stacked,
-                          child: Text('Stacked (Safe Clearance)'),
-                        ),
-                        DropdownMenuItem(
-                          value: BrandingLayout.sideBySide,
-                          child: Text('Side-by-Side (Logo + Details)'),
-                        ),
-                        DropdownMenuItem(
-                          value: BrandingLayout.topRightLogo,
-                          child: Text('Top-Right Logo'),
-                        ),
-                      ],
-                      onChanged: (v) => setState(
-                        () => _brandingLayout = v ?? BrandingLayout.stacked,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<SignatureLayout>(
-                      initialValue: _signatureLayout,
-                      decoration: const InputDecoration(
-                        labelText: 'Signature Layout (Transpose)',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: SignatureLayout.split,
-                          child: Text('Split (Prepared Left / Approved Right)'),
-                        ),
-                        DropdownMenuItem(
-                          value: SignatureLayout.vertical,
-                          child: Text('Vertical Transposed (Rows)'),
-                        ),
-                        DropdownMenuItem(
-                          value: SignatureLayout.horizontal,
-                          child: Text('Horizontal (Columns)'),
-                        ),
-                      ],
-                      onChanged: (v) => setState(
-                        () => _signatureLayout = v ?? SignatureLayout.split,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Wrap(
-                children: [
-                  _Switch(
-                    'Sheet Per Category',
-                    _sheetPerCategory,
-                    (v) => setState(() => _sheetPerCategory = v),
-                  ),
-                  _Switch(
-                    'Include CrossTab',
-                    _crossTab,
-                    (v) => setState(() => _crossTab = v),
-                  ),
-                  _Switch(
-                    'Summary Card (KPIs)',
-                    _summaryCard,
-                    (v) => setState(() => _summaryCard = v),
-                  ),
-                  _Switch(
-                    'Signature Blocks',
-                    _signatures,
-                    (v) => setState(() => _signatures = v),
-                  ),
-                  _Switch(
-                    'Pre-fill Signers & Dates',
-                    _prefillSignatures,
-                    (v) => setState(() => _prefillSignatures = v),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      snippets: const [
-        _CodeSnippet(
-          label: 'EasyReport.fromMaps — complete API',
-          code:
-              'final report = EasyReport.fromMaps(\n'
-              '  data: myMaps,\n'
-              '  title: \'Deductions Report\',\n'
-              '  branding: ReportBranding(\n'
-              '    companyName: \'Acme Global Corporation\',\n'
-              '    address: \'742 Evergreen Terrace, Springfield, OR\',\n'
-              '    layout: BrandingLayout.stacked,\n'
-              '  ),\n'
-              '  groupBy: \'deductionType\',\n'
-              '  sheetPerCategory: true,\n'
-              '  includeCrossTab: true,\n'
-              '  includeSummaryCard: true,\n'
-              '  showSignatures: true,\n'
-              '  signatureLayout: SignatureLayout.split,\n'
-              '  signatureBlocks: [\n'
-              '    ReportSignature(title: \'Prepared By\', name: \'Eleanor Vance\', date: \'Oct 4, 2026\'),\n'
-              '    ReportSignature(title: \'Approved By\', name: \'Julian Hayes\', isRightAligned: true),\n'
-              '  ],\n'
-              ');\n'
-              '\n'
-              '// Export options:\n'
-              'await report.saveExcel();      // save to disk\n'
-              'await report.savePdf();        // save to disk\n'
-              'final artifact = await report.toExcel();\n'
-              'final bytes = artifact.bytes; // get bytes without saving\n'
-              'final bytes = await report.pdfBytes();',
-        ),
-        _CodeSnippet(
-          label: 'Auto-inference rules',
-          code:
-              '// Key heuristics for auto-typed columns:\n'
-              '// "amount","salary","price","cost","pay","revenue"\n'
-              '//   + num value  =>  money column\n'
-              '// "date","time","joined","created"\n'
-              '//   + DateTime   =>  date column\n'
-              '// bool value     =>  boolean column\n'
-              '// other num      =>  number column\n'
-              '// else           =>  text column',
-        ),
-      ],
-      buttons: [
-        _ExportButton(
-          label: 'Save Excel via EasyReport',
-          icon: Icons.table_chart,
-          color: Colors.green,
-          onTap: () => widget.onRun(() async {
-            final r = EasyReport.fromMaps(
-              data: _data,
-              title: '$_dataset Report',
-              subtitle: _kFictional,
-              branding: _reportBranding,
-              theme: _themeObj(),
-              groupBy: _groupByField,
-              sheetPerCategory: _sheetPerCategory,
-              includeCrossTab: _crossTab,
-              includeSummaryCard: _summaryCard,
-              showSignatures: _signatures,
-              signatureLayout: _signatureLayout,
-              signatureBlocks: _signatureBlocks,
-            );
-            await r.saveExcel();
-          }),
-        ),
-        _ExportButton(
-          label: 'Save PDF via EasyReport',
-          icon: Icons.picture_as_pdf,
-          filled: true,
-          onTap: () => widget.onRun(() async {
-            final r = EasyReport.fromMaps(
-              data: _data,
-              title: '$_dataset Report',
-              subtitle: _kFictional,
-              branding: _reportBranding,
-              theme: _themeObj(),
-              groupBy: _groupByField,
-              sheetPerCategory: _sheetPerCategory,
-              includeSummaryCard: _summaryCard,
-              showSignatures: _signatures,
-              signatureLayout: _signatureLayout,
-              signatureBlocks: _signatureBlocks,
-            );
-            await r.savePdf();
-          }),
-        ),
-        _ExportButton(
-          label: 'Get Excel Bytes (no file write)',
-          icon: Icons.memory,
-          color: Colors.purple,
-          onTap: () => widget.onRun(() async {
-            final r = EasyReport.fromMaps(
-              data: _data,
-              title: 'Bytes Demo',
-              branding: _reportBranding,
-              groupBy: _groupByField,
-              signatureLayout: _signatureLayout,
-              signatureBlocks: _signatureBlocks,
-            );
-            final artifact = await r.toExcel();
-            print(
-              '${artifact.bytes.length} bytes ready — send to API, share, or cache!',
-            );
-          }),
-        ),
-      ],
-    );
-  }
-}
-
-class _Switch extends StatelessWidget {
-  const _Switch(this.label, this.value, this.onChanged);
-  final String label;
-  final bool value;
-  final void Function(bool) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 220,
-      child: SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(label, style: const TextStyle(fontSize: 13)),
-        value: value,
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAB 6 — Clean Invoice & Custom Styling
-// ═══════════════════════════════════════════════════════════════════════════════
-class _InvoiceAndCleanStyleTab extends StatefulWidget {
-  const _InvoiceAndCleanStyleTab({required this.onRun, required this.onSave});
-  final Future<void> Function(Future<void> Function()) onRun;
-  final Future<void> Function(ReportArtifact) onSave;
-
-  @override
-  State<_InvoiceAndCleanStyleTab> createState() =>
-      _InvoiceAndCleanStyleTabState();
-}
-
-class _InvoiceAndCleanStyleTabState extends State<_InvoiceAndCleanStyleTab> {
-  TableBorderStyle _borderStyle = TableBorderStyle.clean;
-  bool _showGridlines = false;
-  String _pdfOrientation = 'portrait';
-  bool _includeChart = true;
-
-  final List<Map<String, dynamic>> _invoiceItems = [
-    {
-      'item': 'Senior Enterprise Architecture & Consulting',
-      'category': 'Architecture',
-      'hours': 40,
-      'rate': 185.0,
-      'amount': 7400.0,
-    },
-    {
-      'item': 'Flutter Engine & High-Performance Dart Core',
-      'category': 'Core Engine',
-      'hours': 35,
-      'rate': 130.0,
-      'amount': 4550.0,
-    },
-    {
-      'item': 'Automated Multi-Format Export Pipelines',
-      'category': 'Data Pipelines',
-      'hours': 20,
-      'rate': 115.0,
-      'amount': 2300.0,
-    },
-    {
-      'item': 'Continuous Integration Security & Compliance',
-      'category': 'DevOps',
-      'hours': 12,
-      'rate': 125.0,
-      'amount': 1500.0,
-    },
-  ];
-
-  Future<void> _export(bool isPdf) async {
-    final summaryItems = [
-      ReportSummaryItem.subtotal(15750.0, currencyCode: 'USD'),
-      ReportSummaryItem.tax('Tax / VAT (16%)', 2520.0, currencyCode: 'USD'),
-      const ReportSummaryItem(
-        label: 'Processing & Delivery',
-        value: 150.0,
-        currencyCode: 'USD',
-      ),
-      ReportSummaryItem.total(18420.0, currencyCode: 'USD'),
-      ReportSummaryItem.balanceDue(18420.0, currencyCode: 'USD'),
-    ];
-
-    const paymentDetails = ReportPaymentDetails(
-      bankName: 'Standard Chartered Bank',
-      accountName: 'Antigravity Enterprise Solutions Ltd',
-      accountNumber: '0108044921000',
-      branch: 'Westlands Commercial Hub',
-      swiftCode: 'SCBLKENX',
-      termsOrNotes: [
-        'Payment terms: Net 30 days from date of invoice.',
-        'Please quote invoice number as payment reference.',
-      ],
-    );
-
-    await widget.onRun(() async {
-      final easy = EasyReport.fromMaps(
-        data: _invoiceItems,
-        title: 'Professional Consulting Tax Invoice',
-        subtitle: 'Invoice #INV-2026-0891 • Issue Date: 2026-10-05',
-        companyName: 'Apex Innovations Global',
-        branding: ReportBranding(
-          companyName: 'Apex Innovations Global',
-          address: '100 Enterprise Way, Suite 400, Tech District',
-          phone: '+1 (800) 555-0199',
-          email: 'billing@apexinnovations.com',
-          taxId: 'US-EIN-98-7654321',
-          logoWidth: 90,
-          logoHeight: 45,
-        ),
-        tableBorderStyle: _borderStyle,
-        showGridlines: _showGridlines,
-        pdfOrientation: _pdfOrientation,
-        includeChart: _includeChart,
-        groupBy: 'category',
-        chartConfig: _includeChart
-            ? const ReportChartConfig(
-                type: ReportChartType.bar,
-                title: 'Consulting Hours by Practice',
-                categoryColumn: 'category',
-                measureColumn: 'hours',
-                topN: 4,
-              )
-            : null,
-        summaryItems: summaryItems,
-        paymentDetails: paymentDetails,
-        currencyCode: 'USD',
-        currencyColumns: ['rate', 'amount'],
-      );
-
-      final artifact = isPdf
-          ? await easy.exportPdf(
-              options: PdfExportOptions(
-                orientation: _pdfOrientation,
-                tableBorderStyle: _borderStyle,
-                showSignatures: true,
-                signatureLayout: SignatureLayout.adaptive,
-                signatureLabels: ['Prepared By', 'Approved & Authorized By'],
-              ),
+  ReportDefinition<Map<String, dynamic>> _buildClinicalDefinition() {
+    final branding = _getBrandingForCurrentUseCase();
+    return ReportDefinition<Map<String, dynamic>>(
+      title: 'Hospital Clinical Audit & Care Register',
+      subtitle: 'Inpatient Census & Departmental Care Valuation',
+      branding: branding,
+      theme: ReportTheme.forestGreen(),
+      paymentDetails: _showPaymentDetails
+          ? ReportPaymentDetails(
+              position: _paymentPosition,
+              bankName: 'Bank of America Healthcare Services',
+              accountName: 'St. Jude Metropolitan Health System',
+              accountNumber: '33019844201',
+              branch: 'Boston Medical Pavilion',
+              termsOrNotes: const [
+                'Inpatient claims certified compliant with HIPAA and CMS.',
+              ],
             )
-          : await easy.exportExcel(
-              options: ExcelExportOptions(
-                showGridlines: _showGridlines,
-                tableBorderStyle: _borderStyle,
-                showSignatures: true,
-                signatureLayout: SignatureLayout.adaptive,
-                signatureLabels: ['Prepared By', 'Approved & Authorized By'],
-              ),
-            );
-
-      await widget.onSave(artifact);
-    });
+          : null,
+      columns: [
+        ReportColumn<Map<String, dynamic>>(
+          id: 'patientId',
+          title: 'Patient ID',
+          accessor: (m) => m['patientId'],
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'department',
+          title: 'Clinical Ward',
+          accessor: (m) => m['department'],
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'physician',
+          title: 'Attending Physician',
+          accessor: (m) => m['physician'],
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'admissionDays',
+          title: 'Stay Days',
+          accessor: (m) => m['admissionDays'],
+          type: ReportFieldType.number,
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'billAmount',
+          title: 'Care Charges',
+          accessor: (m) => m['billAmount'],
+          type: ReportFieldType.money,
+          currencyCode: 'USD',
+        ),
+        ReportColumn<Map<String, dynamic>>(
+          id: 'status',
+          title: 'Discharge Status',
+          accessor: (m) => m['status'],
+        ),
+      ],
+      analyses: [
+        ReportAnalysis(
+          id: 'ward_summary',
+          title: 'Ward Operations & Stay Analysis',
+          groupBy: const ['department'],
+          measures: [
+            ReportMeasure.sum(
+              column: 'billAmount',
+              currencyCode: 'USD',
+              title: 'Ward Total Cost',
+            ),
+            ReportMeasure.average(
+              column: 'admissionDays',
+              title: 'Avg Stay Duration',
+            ),
+            ReportMeasure.countNonNull(
+              column: 'patientId',
+              title: 'Total Patients',
+            ),
+          ],
+          showGrandTotal: true,
+          showSubtotals: true,
+        ),
+      ],
+    );
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UI & LAYOUT (THEME ADAPTIVE & 10x UX)
+  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const _InfoBanner(
-          'Dynamic Invoice & Clean Styling: Customize table border styles, '
-          'turn off Excel worksheet gridlines, embed remittance / bank accounts, '
-          'and generate portrait PDFs with automatically stacked signatures.',
-        ),
-        const SizedBox(height: 14),
+    final theme = Theme.of(context);
+    final isDesktop = MediaQuery.of(context).size.width >= 960;
 
-        // Style & Options Card
-        Card(
-          elevation: 1.5,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.palette_outlined, color: Color(0xFF1565C0)),
-                    SizedBox(width: 8),
-                    Text(
-                      'Report Appearance & Layout Controls',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Table Border Style Selector
-                DropdownButtonFormField<TableBorderStyle>(
-                  initialValue: _borderStyle,
-                  decoration: const InputDecoration(
-                    labelText: 'Table Border Style',
-                    border: OutlineInputBorder(),
-                    helperText:
-                        'Clean style: Dark header underline, borderless body, double total line',
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: TableBorderStyle.clean,
-                      child: Text('Clean / Modern Invoice (No vertical lines)'),
-                    ),
-                    DropdownMenuItem(
-                      value: TableBorderStyle.horizontalOnly,
-                      child: Text('Horizontal Dividers Only'),
-                    ),
-                    DropdownMenuItem(
-                      value: TableBorderStyle.headerAndTotalOnly,
-                      child: Text('Header & Total Lines Only'),
-                    ),
-                    DropdownMenuItem(
-                      value: TableBorderStyle.grid,
-                      child: Text('Full Classic Grid (All Borders)'),
-                    ),
-                    DropdownMenuItem(
-                      value: TableBorderStyle.none,
-                      child: Text('None (Borderless)'),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => _borderStyle = val);
-                  },
-                ),
-                const SizedBox(height: 14),
-
-                // Excel Gridlines Toggle
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  secondary: const Icon(Icons.grid_off_outlined),
-                  title: const Text('Excel Worksheet Gridlines'),
-                  subtitle: Text(
-                    _showGridlines
-                        ? 'Gridlines are ON (default Excel appearance)'
-                        : 'Gridlines are OFF (Pristine modern document style)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _showGridlines
-                          ? Colors.grey.shade700
-                          : Colors.green.shade700,
-                      fontWeight: _showGridlines
-                          ? FontWeight.normal
-                          : FontWeight.bold,
-                    ),
-                  ),
-                  value: _showGridlines,
-                  onChanged: (val) => setState(() => _showGridlines = val),
-                ),
-                const Divider(),
-
-                // PDF Orientation Selector
-                Row(
-                  children: [
-                    const Icon(Icons.screen_rotation_outlined, size: 20),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'PDF Orientation:',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(width: 14),
-                    ChoiceChip(
-                      label: const Text('Portrait (Stacked Signatures)'),
-                      selected: _pdfOrientation == 'portrait',
-                      onSelected: (sel) {
-                        if (sel) setState(() => _pdfOrientation = 'portrait');
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Landscape (Split Signatures)'),
-                      selected: _pdfOrientation == 'landscape',
-                      onSelected: (sel) {
-                        if (sel) setState(() => _pdfOrientation = 'landscape');
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _pdfOrientation == 'portrait'
-                      ? '• Portrait mode automatically stacks signatures vertically row-by-row to prevent horizontal crowding.'
-                      : '• Landscape mode positions signatures with Split layout (Left: Prepared/Date, Right: Approved/Authorized).',
-                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
-                ),
-                const Divider(),
-
-                // Chart Toggle
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  secondary: const Icon(Icons.bar_chart_outlined),
-                  title: const Text('Include Visual Chart Breakdown'),
-                  subtitle: const Text(
-                    'PDF renders the selected chart; Excel shows a proportional category breakdown',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  value: _includeChart,
-                  onChanged: (val) => setState(() => _includeChart = val),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        // Live Document Preview
-        Card(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(color: Colors.grey.shade300),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Apex Innovations Global',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1565C0),
-                          ),
-                        ),
-                        Text(
-                          '100 Enterprise Way, Suite 400 • Tel: +1 800 555 0199',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        Text(
-                          'Tax ID / PIN: US-EIN-98-7654321',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: const Text(
-                        'TAX INVOICE',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1565C0),
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const Divider(height: 24, thickness: 1.5),
-
-                // Table Items
-                Table(
-                  columnWidths: const {
-                    0: FlexColumnWidth(4),
-                    1: FlexColumnWidth(1.2),
-                    2: FlexColumnWidth(1.8),
-                    3: FlexColumnWidth(1.8),
-                  },
-                  children: [
-                    TableRow(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: _borderStyle == TableBorderStyle.none
-                                ? Colors.transparent
-                                : const Color(0xFF1565C0),
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                      children: const [
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 6),
-                          child: Text(
-                            'Description',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 6),
-                          child: Text(
-                            'Hours',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 6),
-                          child: Text(
-                            'Rate',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 6),
-                          child: Text(
-                            'Amount',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    ..._invoiceItems.map(
-                      (item) => TableRow(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color:
-                                  (_borderStyle ==
-                                          TableBorderStyle.horizontalOnly ||
-                                      _borderStyle == TableBorderStyle.grid)
-                                  ? Colors.grey.shade200
-                                  : Colors.transparent,
-                            ),
-                          ),
-                        ),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(
-                              item['item'],
-                              style: const TextStyle(fontSize: 11.5),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(
-                              '${item['hours']}',
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(fontSize: 11.5),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(
-                              '\$${(item['rate'] as num).toStringAsFixed(2)}',
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(fontSize: 11.5),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(
-                              '\$${(item['amount'] as num).toStringAsFixed(2)}',
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // Bottom Remittance & Financial Summary Block
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Remittance / Bank Info (Left Side)
-                    Expanded(
-                      flex: 5,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Remittance / Payment Details',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: Color(0xFF1565C0),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Bank: Standard Chartered Bank',
-                              style: TextStyle(fontSize: 11),
-                            ),
-                            const Text(
-                              'Account Name: Antigravity Solutions Ltd',
-                              style: TextStyle(fontSize: 11),
-                            ),
-                            const Text(
-                              'Account No: 0108044921000',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              'Branch: Westlands Commercial Hub',
-                              style: TextStyle(fontSize: 11),
-                            ),
-                            const Text(
-                              'SWIFT / BIC: SCBLKENX',
-                              style: TextStyle(fontSize: 11),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Note: Payment terms Net 30 days.',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontStyle: FontStyle.italic,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-
-                    // Financial Summary Stack (Right Side)
-                    Expanded(
-                      flex: 4,
-                      child: Column(
-                        children: [
-                          _summaryRow('Subtotal:', '\$15,750.00'),
-                          _summaryRow('Tax / VAT (16%):', '\$2,520.00'),
-                          _summaryRow('Processing:', '\$150.00'),
-                          const Divider(height: 12),
-                          _summaryRow('Total:', '\$18,420.00', isBold: true),
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: Colors.blue.shade700,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            padding: const EdgeInsets.only(bottom: 2),
-                            child: _summaryRow(
-                              'Balance Due:',
-                              '\$18,420.00',
-                              isBold: true,
-                              color: const Color(0xFF1565C0),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // Action Buttons
-        Row(
+    return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
+        title: Row(
           children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E7E34),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                icon: const Icon(Icons.table_view),
-                label: Text(
-                  _showGridlines
-                      ? 'Export Excel (Gridlines: ON)'
-                      : 'Export Clean Excel (Gridlines: OFF)',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                onPressed: () => _export(false),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
               ),
+              child: const Icon(Icons.assessment_rounded, size: 20),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC62828),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                icon: const Icon(Icons.picture_as_pdf),
-                label: Text(
-                  'Export PDF (${_pdfOrientation.toUpperCase()})',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                onPressed: () => _export(true),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'syncfusion_easy_reports',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '10x Production Reporting Engine • Pure Dart • 100% Offline',
+                    style: TextStyle(fontSize: 11, color: Colors.white70),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: widget.isDark
+                ? 'Switch to Light Mode'
+                : 'Switch to Dark Mode',
+            icon: Icon(widget.isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: widget.onToggleTheme,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildScenarioSelector(),
+          Expanded(
+            child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScenarioSelector() {
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _scenarioChip(
+              useCase: ReportUseCase.invoice,
+              icon: Icons.receipt_long,
+              title: 'Tax Invoice & Remittance',
+              subtitle: 'Borders • Remittance • Signatures',
+            ),
+            const SizedBox(width: 10),
+            _scenarioChip(
+              useCase: ReportUseCase.payroll,
+              icon: Icons.badge,
+              title: 'Department Payroll',
+              subtitle: 'Multi-Column Sums • Category Tabs',
+            ),
+            const SizedBox(width: 10),
+            _scenarioChip(
+              useCase: ReportUseCase.salesCrossTab,
+              icon: Icons.pivot_table_chart,
+              title: 'Executive Sales CrossTab',
+              subtitle: 'Matrix Pivot • Charts • Title Case',
+            ),
+            const SizedBox(width: 10),
+            _scenarioChip(
+              useCase: ReportUseCase.agingValuation,
+              icon: Icons.account_balance_wallet,
+              title: 'Accounts Receivable Aging',
+              subtitle: 'Aging Brackets • Subtotals • Valuation',
+            ),
+            const SizedBox(width: 10),
+            _scenarioChip(
+              useCase: ReportUseCase.clinicalAudit,
+              icon: Icons.local_hospital,
+              title: 'Clinical Health Audit',
+              subtitle: 'Ward Census • Patient Charges • Care Audit',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _scenarioChip({
+    required ReportUseCase useCase,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final isSelected = _selectedCase == useCase;
+    final theme = Theme.of(context);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => setState(() => _selectedCase = useCase),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outlineVariant,
+            width: isSelected ? 1.8 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: isSelected
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected
+                        ? theme.colorScheme.onPrimaryContainer
+                        : theme.colorScheme.onSurface,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: isSelected
+                        ? theme.colorScheme.onPrimaryContainer.withValues(
+                            alpha: 0.8,
+                          )
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Left Rail: Interactive Controls & Actions
+        SizedBox(
+          width: 440,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildExportActionBar(),
+              const SizedBox(height: 14),
+              _buildConfigurationCard(),
+              const SizedBox(height: 14),
+              _buildCodeSnippetCard(),
+            ],
+          ),
+        ),
+        const VerticalDivider(width: 1),
+
+        // Right Rail: Live Document Preview
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [_buildLivePreviewCard()],
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return ListView(
+      padding: const EdgeInsets.all(14),
+      children: [
+        _buildExportActionBar(),
+        const SizedBox(height: 14),
+        _buildConfigurationCard(),
+        const SizedBox(height: 14),
+        _buildLivePreviewCard(),
+        const SizedBox(height: 14),
+        _buildCodeSnippetCard(),
+      ],
+    );
+  }
+
+  Widget _buildExportActionBar() {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: theme.colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.bolt_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'One-Click Export Hub',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E7E34),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.table_view, size: 20),
+                    label: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Export Excel (.xlsx)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    onPressed: _busy ? null : () => _exportReport(false),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFC62828),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.picture_as_pdf, size: 20),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Export PDF (${_pdfOrientation.name.toUpperCase()})',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    onPressed: _busy ? null : () => _exportReport(true),
+                  ),
+                ),
+              ],
+            ),
+            if (_statusMessage != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: _statusMessage!.startsWith('Error')
+                      ? Colors.red.withValues(alpha: 0.15)
+                      : Colors.green.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: _statusMessage!.startsWith('Error')
+                        ? Colors.red.shade400
+                        : Colors.green.shade400,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _statusMessage!.startsWith('Error')
+                          ? Icons.error_outline
+                          : Icons.check_circle_outline,
+                      size: 16,
+                      color: _statusMessage!.startsWith('Error')
+                          ? Colors.red.shade400
+                          : Colors.green.shade400,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _statusMessage!,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: _statusMessage!.startsWith('Error')
+                              ? (widget.isDark
+                                    ? Colors.red.shade200
+                                    : Colors.red.shade900)
+                              : (widget.isDark
+                                    ? Colors.green.shade200
+                                    : Colors.green.shade900),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (_lastArtifact != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.4,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.attachment,
+                      size: 14,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Ready: ${_lastArtifact!.filename} (${_lastArtifact!.formattedSize})',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfigurationCard() {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.tune, color: theme.colorScheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Layout & Presentation Options',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // PDF Orientation
+            DropdownButtonFormField<PdfPageOrientation>(
+              isExpanded: true,
+              initialValue: _pdfOrientation,
+              decoration: const InputDecoration(
+                labelText: 'PDF Page Orientation',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.screen_rotation_outlined),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: PdfPageOrientation.portrait,
+                  child: Text(
+                    'Portrait (Default layout)',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: PdfPageOrientation.landscape,
+                  child: Text(
+                    'Landscape (Wide tables)',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _pdfOrientation = val);
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Table Border Style
+            DropdownButtonFormField<TableBorderStyle>(
+              isExpanded: true,
+              initialValue: _borderStyle,
+              decoration: const InputDecoration(
+                labelText: 'Table Border Style',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.border_style),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: TableBorderStyle.clean,
+                  child: Text(
+                    'Clean / Modern',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: TableBorderStyle.horizontalOnly,
+                  child: Text(
+                    'Horizontal Dividers Only',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: TableBorderStyle.grid,
+                  child: Text(
+                    'Full Classic Grid',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: TableBorderStyle.headerAndTotalOnly,
+                  child: Text(
+                    'Header & Total Lines Only',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: TableBorderStyle.none,
+                  child: Text(
+                    'None (Minimalist Borderless)',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _borderStyle = val);
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Optional Signatures Toggle
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.draw_outlined),
+              title: const Text(
+                'Include Signatures Block',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text(
+                'Renders preparation & approval sign-offs',
+                style: TextStyle(fontSize: 11),
+              ),
+              value: _showSignatures,
+              onChanged: (val) => setState(() => _showSignatures = val),
+            ),
+
+            if (_showSignatures) ...[
+              const SizedBox(height: 6),
+              DropdownButtonFormField<SignatureLayout>(
+                isExpanded: true,
+                initialValue: _sigLayout,
+                decoration: const InputDecoration(
+                  labelText: 'Signature Block Layout',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.view_agenda_outlined),
+                  helperText: 'Vertical stacks all signatures in ONE column',
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: SignatureLayout.vertical,
+                    child: Text(
+                      'Vertical Stack (1 Column)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: SignatureLayout.horizontal,
+                    child: Text(
+                      'Horizontal (Side-by-side)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: SignatureLayout.split,
+                    child: Text(
+                      'Split (Left Prepared / Right Approved)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: SignatureLayout.adaptive,
+                    child: Text(
+                      'Adaptive (Auto-stacked)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _sigLayout = val);
+                },
+              ),
+            ],
+            const SizedBox(height: 10),
+
+            // Optional Payment Instructions Toggle
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.payments_outlined),
+              title: const Text(
+                'Include Payment & Remittance',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text(
+                'Wire transfer, bank accounts & terms',
+                style: TextStyle(fontSize: 11),
+              ),
+              value: _showPaymentDetails,
+              onChanged: (val) => setState(() => _showPaymentDetails = val),
+            ),
+
+            if (_showPaymentDetails) ...[
+              const SizedBox(height: 6),
+              DropdownButtonFormField<PaymentDetailsPosition>(
+                isExpanded: true,
+                initialValue: _paymentPosition,
+                decoration: const InputDecoration(
+                  labelText: 'Payment Instructions Position',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.vertical_align_bottom_outlined),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: PaymentDetailsPosition.belowSummary,
+                    child: Text(
+                      'Below Summary (After Balance Due)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: PaymentDetailsPosition.afterSignatures,
+                    child: Text(
+                      'After Signatures (Bottom of Document)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: PaymentDetailsPosition.sideBySide,
+                    child: Text(
+                      'Side by Side (Classic Format)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _paymentPosition = val);
+                },
+              ),
+            ],
+            const SizedBox(height: 10),
+
+            // Scenario-Specific Controls
+            if (_selectedCase == ReportUseCase.invoice) ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.grid_off_outlined),
+                title: const Text(
+                  'Excel Worksheet Gridlines',
+                  style: TextStyle(fontSize: 13),
+                ),
+                value: _showExcelGridlines,
+                onChanged: (val) => setState(() => _showExcelGridlines = val),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.bar_chart),
+                title: const Text(
+                  'Include Visual Chart Breakdown',
+                  style: TextStyle(fontSize: 13),
+                ),
+                value: _includeChart,
+                onChanged: (val) => setState(() => _includeChart = val),
+              ),
+            ] else if (_selectedCase == ReportUseCase.payroll) ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.tab),
+                title: const Text(
+                  'Dedicated Sheet Per Department',
+                  style: TextStyle(fontSize: 13),
+                ),
+                subtitle: const Text(
+                  'Exports department category tabs in Excel',
+                  style: TextStyle(fontSize: 11),
+                ),
+                value: _sheetPerDept,
+                onChanged: (val) => setState(() => _sheetPerDept = val),
+              ),
+            ] else if (_selectedCase == ReportUseCase.salesCrossTab) ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.table_chart),
+                title: const Text(
+                  'Matrix CrossTab Pivot',
+                  style: TextStyle(fontSize: 13),
+                ),
+                subtitle: const Text(
+                  'Cross-tabulates Regions across Quarters',
+                  style: TextStyle(fontSize: 11),
+                ),
+                value: _isCrossTab,
+                onChanged: (val) => setState(() => _isCrossTab = val),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // THEME-ADAPTIVE DOCUMENT CANVAS PREVIEW
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildLivePreviewCard() {
+    final isDark = widget.isDark;
+    final branding = _getBrandingForCurrentUseCase();
+
+    // Semantic, high-contrast palette perfectly tuned for both Light and Dark modes
+    final paperBg = isDark ? const Color(0xFF1E222D) : Colors.white;
+    final cardBorder = isDark
+        ? const Color(0xFF334155)
+        : const Color(0xFFCBD5E1);
+    final primaryAccent = isDark
+        ? const Color(0xFF60A5FA)
+        : const Color(0xFF1565C0);
+    final textPrimary = isDark
+        ? const Color(0xFFF1F5F9)
+        : const Color(0xFF0F172A);
+    final textMuted = isDark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: cardBorder, width: 1.2),
+      ),
+      color: paperBg,
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Preview Header Badge & Indicators
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      size: 20,
+                      color: primaryAccent,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Live Document Visualizer',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: primaryAccent,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryAccent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: primaryAccent.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    '${_pdfOrientation.name.toUpperCase()} • ${_borderStyle.name}',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: primaryAccent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Divider(height: 24, color: cardBorder),
+
+            // Document Header: Company Logo, Address, and Contacts
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Company Name, Full Address, Phone, Email, Tax ID
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        branding.companyName ?? 'Enterprise Reporting Ltd',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: primaryAccent,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        branding.address ?? '100 Enterprise Way, Suite 400',
+                        style: TextStyle(fontSize: 11, color: textMuted),
+                      ),
+                      Text(
+                        'Tel: ${branding.phone ?? "+1 (800) 555-0199"} • Email: ${branding.email ?? "billing@apex.com"}',
+                        style: TextStyle(fontSize: 11, color: textMuted),
+                      ),
+                      if (branding.taxId != null)
+                        Text(
+                          'Tax ID / EIN: ${branding.taxId}',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: textMuted,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Company Logo / Corporate Badge
+                Container(
+                  height: 48,
+                  width: 96,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF262D3D)
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: cardBorder),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset(
+                    'assets/logo.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Center(
+                      child: Icon(
+                        Icons.business,
+                        color: primaryAccent,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Report Title & Subtitle Badge
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: primaryAccent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: primaryAccent.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _scenarioTitle(),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
+                  ),
+                  Text(
+                    _scenarioSubtitle(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Live Data Table Preview with Multi-Column Sums Aligned Under Columns
+            _buildSampleTablePreview(
+              isDark,
+              cardBorder,
+              primaryAccent,
+              textPrimary,
+              textMuted,
+            ),
+            const SizedBox(height: 18),
+
+            // Financial Summary, Optional Remittance Box & Signatures Layout
+            _buildBottomSectionsPreview(
+              isDark,
+              cardBorder,
+              primaryAccent,
+              textPrimary,
+              textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _scenarioTitle() {
+    switch (_selectedCase) {
+      case ReportUseCase.invoice:
+        return 'Commercial Tax Invoice & Remittance';
+      case ReportUseCase.payroll:
+        return 'Department Payroll & Statutory Deductions';
+      case ReportUseCase.salesCrossTab:
+        return 'Executive Sales & Quarterly Matrix';
+      case ReportUseCase.agingValuation:
+        return 'Accounts Receivable & Aging Valuation';
+      case ReportUseCase.clinicalAudit:
+        return 'Hospital Clinical Audit & Care Register';
+    }
+  }
+
+  String _scenarioSubtitle() {
+    switch (_selectedCase) {
+      case ReportUseCase.invoice:
+        return 'Invoice #INV-2026-0891 • Issue Date: October 05, 2026';
+      case ReportUseCase.payroll:
+        return 'Internal Salary Schedule • Period Ending Oct 2026';
+      case ReportUseCase.salesCrossTab:
+        return 'Quarterly Revenue Performance by Region & Line';
+      case ReportUseCase.agingValuation:
+        return 'Aging Analysis & Risk Exposure Portfolio';
+      case ReportUseCase.clinicalAudit:
+        return 'Inpatient Census & Departmental Care Valuation';
+    }
+  }
+
+  Widget _buildSampleTablePreview(
+    bool isDark,
+    Color cardBorder,
+    Color primaryAccent,
+    Color textPrimary,
+    Color textMuted,
+  ) {
+    final headerBg = isDark ? const Color(0xFF1E3A8A) : const Color(0xFFE3F2FD);
+    final headerTextColor = isDark
+        ? const Color(0xFF93C5FD)
+        : const Color(0xFF0D47A1);
+    final totalsBg = isDark ? const Color(0xFF1E3A5F) : const Color(0xFFFFF9C4);
+    final totalsTextColor = isDark
+        ? const Color(0xFFFDE047)
+        : const Color(0xFF1E293B);
+
+    switch (_selectedCase) {
+      case ReportUseCase.invoice:
+        return Table(
+          border: _resolveTableBorder(cardBorder, primaryAccent),
+          columnWidths: const {
+            0: FlexColumnWidth(4),
+            1: FlexColumnWidth(2),
+            2: FlexColumnWidth(1.2),
+            3: FlexColumnWidth(1.5),
+            4: FlexColumnWidth(1.8),
+          },
+          children: [
+            TableRow(
+              decoration: BoxDecoration(color: headerBg),
+              children: [
+                _th('Service Description', headerTextColor),
+                _th('Category', headerTextColor),
+                _th('Hours', headerTextColor, align: TextAlign.right),
+                _th('Rate', headerTextColor, align: TextAlign.right),
+                _th('Amount', headerTextColor, align: TextAlign.right),
+              ],
+            ),
+            for (final item in _invoiceItems)
+              TableRow(
+                children: [
+                  _td(item['item'] as String, textPrimary),
+                  _td(item['category'] as String, textPrimary),
+                  _td('${item['hours']}', textPrimary, align: TextAlign.right),
+                  _td(
+                    '\$${(item['rate'] as num).toStringAsFixed(2)}',
+                    textPrimary,
+                    align: TextAlign.right,
+                  ),
+                  _td(
+                    '\$${(item['amount'] as num).toStringAsFixed(2)}',
+                    textPrimary,
+                    align: TextAlign.right,
+                    isBold: true,
+                  ),
+                ],
+              ),
+            // Multi-column sums directly placed under respective columns!
+            TableRow(
+              decoration: BoxDecoration(color: totalsBg),
+              children: [
+                _td('Subtotal', totalsTextColor, isBold: true),
+                _td('', totalsTextColor),
+                _td(
+                  '107 Hrs',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+                _td('', totalsTextColor),
+                _td(
+                  '\$15,750.00',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+          ],
+        );
+
+      case ReportUseCase.payroll:
+        return Table(
+          border: _resolveTableBorder(cardBorder, primaryAccent),
+          columnWidths: const {
+            0: FlexColumnWidth(1.4),
+            1: FlexColumnWidth(2.6),
+            2: FlexColumnWidth(2.0),
+            3: FlexColumnWidth(1.8),
+            4: FlexColumnWidth(1.8),
+            5: FlexColumnWidth(1.8),
+            6: FlexColumnWidth(2.0),
+          },
+          children: [
+            TableRow(
+              decoration: BoxDecoration(color: headerBg),
+              children: [
+                _th('ID', headerTextColor),
+                _th('Full Name', headerTextColor),
+                _th('Department', headerTextColor),
+                _th('Basic', headerTextColor, align: TextAlign.right),
+                _th('Allow.', headerTextColor, align: TextAlign.right),
+                _th('Deduct.', headerTextColor, align: TextAlign.right),
+                _th('Net Pay', headerTextColor, align: TextAlign.right),
+              ],
+            ),
+            for (final emp in _employees)
+              TableRow(
+                children: [
+                  _td(emp.id, textPrimary),
+                  _td(emp.name, textPrimary),
+                  _td(emp.department, textPrimary),
+                  _td(
+                    '\$${emp.basicPay.toStringAsFixed(0)}',
+                    textPrimary,
+                    align: TextAlign.right,
+                  ),
+                  _td(
+                    '\$${emp.allowances.toStringAsFixed(0)}',
+                    textPrimary,
+                    align: TextAlign.right,
+                  ),
+                  _td(
+                    '\$${emp.deductions.toStringAsFixed(0)}',
+                    textPrimary,
+                    align: TextAlign.right,
+                  ),
+                  _td(
+                    '\$${emp.netPay.toStringAsFixed(0)}',
+                    textPrimary,
+                    align: TextAlign.right,
+                    isBold: true,
+                  ),
+                ],
+              ),
+            // Multi-column sums: Basic, Allowances, Deductions, and Net all summed under their own columns!
+            TableRow(
+              decoration: BoxDecoration(color: totalsBg),
+              children: [
+                _td('Grand Total', totalsTextColor, isBold: true),
+                _td('7 Staff', totalsTextColor, isBold: true),
+                _td('', totalsTextColor),
+                _td(
+                  '\$55,200',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+                _td(
+                  '\$9,150',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+                _td(
+                  '\$4,990',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+                _td(
+                  '\$59,360',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+          ],
+        );
+
+      case ReportUseCase.salesCrossTab:
+        return Table(
+          border: _resolveTableBorder(cardBorder, primaryAccent),
+          children: [
+            TableRow(
+              decoration: BoxDecoration(color: headerBg),
+              children: [
+                _th('Region', headerTextColor),
+                _th('Q1 Revenue', headerTextColor, align: TextAlign.right),
+                _th('Q2 Revenue', headerTextColor, align: TextAlign.right),
+                _th('Total Revenue', headerTextColor, align: TextAlign.right),
+              ],
+            ),
+            TableRow(
+              children: [
+                _td('North America', textPrimary),
+                _td('\$42,000', textPrimary, align: TextAlign.right),
+                _td('\$58,000', textPrimary, align: TextAlign.right),
+                _td(
+                  '\$100,000',
+                  textPrimary,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+            TableRow(
+              children: [
+                _td('EMEA', textPrimary),
+                _td('\$31,000', textPrimary, align: TextAlign.right),
+                _td('\$49,000', textPrimary, align: TextAlign.right),
+                _td(
+                  '\$80,000',
+                  textPrimary,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+            TableRow(
+              children: [
+                _td('LATAM', textPrimary),
+                _td('\$27,500', textPrimary, align: TextAlign.right),
+                _td('\$36,500', textPrimary, align: TextAlign.right),
+                _td(
+                  '\$64,000',
+                  textPrimary,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+            TableRow(
+              children: [
+                _td('APAC', textPrimary),
+                _td('\$51,000', textPrimary, align: TextAlign.right),
+                _td('\$64,000', textPrimary, align: TextAlign.right),
+                _td(
+                  '\$115,000',
+                  textPrimary,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+            TableRow(
+              decoration: BoxDecoration(color: totalsBg),
+              children: [
+                _td('Grand Total', totalsTextColor, isBold: true),
+                _td(
+                  '\$151,500',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+                _td(
+                  '\$207,500',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+                _td(
+                  '\$359,000',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+          ],
+        );
+
+      case ReportUseCase.agingValuation:
+        return Table(
+          border: _resolveTableBorder(cardBorder, primaryAccent),
+          children: [
+            TableRow(
+              decoration: BoxDecoration(color: headerBg),
+              children: [
+                _th('Client Name', headerTextColor),
+                _th('Invoice', headerTextColor),
+                _th('Aging Bracket', headerTextColor),
+                _th('Days', headerTextColor, align: TextAlign.right),
+                _th('Balance Due', headerTextColor, align: TextAlign.right),
+              ],
+            ),
+            for (final row in _agingData)
+              TableRow(
+                children: [
+                  _td(row['client'] as String, textPrimary),
+                  _td(row['invoice'] as String, textPrimary),
+                  _td(row['status'] as String, textPrimary),
+                  _td(
+                    '${row['daysOverdue']}',
+                    textPrimary,
+                    align: TextAlign.right,
+                  ),
+                  _td(
+                    '\$${(row['amount'] as num).toStringAsFixed(2)}',
+                    textPrimary,
+                    align: TextAlign.right,
+                    isBold: true,
+                  ),
+                ],
+              ),
+            TableRow(
+              decoration: BoxDecoration(color: totalsBg),
+              children: [
+                _td('Total Portfolio', totalsTextColor, isBold: true),
+                _td('5 Invoices', totalsTextColor),
+                _td('All Brackets', totalsTextColor),
+                _td(
+                  '38 Avg',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+                _td(
+                  '\$63,350.00',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+          ],
+        );
+
+      case ReportUseCase.clinicalAudit:
+        return Table(
+          border: _resolveTableBorder(cardBorder, primaryAccent),
+          children: [
+            TableRow(
+              decoration: BoxDecoration(color: headerBg),
+              children: [
+                _th('Patient ID', headerTextColor),
+                _th('Ward', headerTextColor),
+                _th('Attending Physician', headerTextColor),
+                _th('Days', headerTextColor, align: TextAlign.right),
+                _th('Care Charges', headerTextColor, align: TextAlign.right),
+              ],
+            ),
+            for (final row in _clinicalData)
+              TableRow(
+                children: [
+                  _td(row['patientId'] as String, textPrimary),
+                  _td(row['department'] as String, textPrimary),
+                  _td(row['physician'] as String, textPrimary),
+                  _td(
+                    '${row['admissionDays']}',
+                    textPrimary,
+                    align: TextAlign.right,
+                  ),
+                  _td(
+                    '\$${(row['billAmount'] as num).toStringAsFixed(2)}',
+                    textPrimary,
+                    align: TextAlign.right,
+                    isBold: true,
+                  ),
+                ],
+              ),
+            TableRow(
+              decoration: BoxDecoration(color: totalsBg),
+              children: [
+                _td('Ward Total', totalsTextColor, isBold: true),
+                _td('4 Wards', totalsTextColor),
+                _td('All Clinicians', totalsTextColor),
+                _td(
+                  '21 Days',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+                _td(
+                  '\$27,350.00',
+                  totalsTextColor,
+                  align: TextAlign.right,
+                  isBold: true,
+                ),
+              ],
+            ),
+          ],
+        );
+    }
+  }
+
+  TableBorder? _resolveTableBorder(Color cardBorder, Color primaryAccent) {
+    switch (_borderStyle) {
+      case TableBorderStyle.grid:
+        return TableBorder.all(color: cardBorder, width: 0.8);
+      case TableBorderStyle.horizontalOnly:
+        return TableBorder(
+          horizontalInside: BorderSide(color: cardBorder, width: 0.8),
+          bottom: BorderSide(color: cardBorder, width: 1.0),
+        );
+      case TableBorderStyle.clean:
+        return TableBorder(
+          top: BorderSide(color: primaryAccent, width: 1.5),
+          bottom: BorderSide(color: primaryAccent, width: 2.0),
+        );
+      case TableBorderStyle.headerAndTotalOnly:
+        return TableBorder(
+          top: BorderSide(color: cardBorder, width: 1.0),
+          bottom: BorderSide(color: cardBorder, width: 1.5),
+        );
+      case TableBorderStyle.none:
+        return null;
+    }
+  }
+
+  Widget _th(String text, Color color, {TextAlign align = TextAlign.left}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+      child: Text(
+        text,
+        textAlign: align,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _td(
+    String text,
+    Color color, {
+    TextAlign align = TextAlign.left,
+    bool isBold = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      child: Text(
+        text,
+        textAlign: align,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomSectionsPreview(
+    bool isDark,
+    Color cardBorder,
+    Color primaryAccent,
+    Color textPrimary,
+    Color textMuted,
+  ) {
+    if (_selectedCase == ReportUseCase.invoice) {
+      if (_paymentPosition == PaymentDetailsPosition.sideBySide) {
+        return Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_showPaymentDetails)
+                  Expanded(
+                    flex: 5,
+                    child: _buildRemittancePreviewCard(
+                      isDark,
+                      cardBorder,
+                      primaryAccent,
+                      textPrimary,
+                      textMuted,
+                    ),
+                  ),
+                if (_showPaymentDetails) const SizedBox(width: 20),
+                Expanded(
+                  flex: 4,
+                  child: _buildFinancialSummaryStack(
+                    isDark,
+                    cardBorder,
+                    primaryAccent,
+                    textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            if (_showSignatures) ...[
+              const SizedBox(height: 18),
+              _buildSignaturesPreview(
+                isDark,
+                cardBorder,
+                primaryAccent,
+                textPrimary,
+                textMuted,
+              ),
+            ],
+          ],
+        );
+      } else if (_paymentPosition == PaymentDetailsPosition.belowSummary) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                width: 280,
+                child: _buildFinancialSummaryStack(
+                  isDark,
+                  cardBorder,
+                  primaryAccent,
+                  textPrimary,
+                ),
+              ),
+            ),
+            if (_showPaymentDetails) ...[
+              const SizedBox(height: 16),
+              _buildRemittancePreviewCard(
+                isDark,
+                cardBorder,
+                primaryAccent,
+                textPrimary,
+                textMuted,
+              ),
+            ],
+            if (_showSignatures) ...[
+              const SizedBox(height: 18),
+              _buildSignaturesPreview(
+                isDark,
+                cardBorder,
+                primaryAccent,
+                textPrimary,
+                textMuted,
+              ),
+            ],
+          ],
+        );
+      } else {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                width: 280,
+                child: _buildFinancialSummaryStack(
+                  isDark,
+                  cardBorder,
+                  primaryAccent,
+                  textPrimary,
+                ),
+              ),
+            ),
+            if (_showSignatures) ...[
+              const SizedBox(height: 18),
+              _buildSignaturesPreview(
+                isDark,
+                cardBorder,
+                primaryAccent,
+                textPrimary,
+                textMuted,
+              ),
+            ],
+            if (_showPaymentDetails) ...[
+              const SizedBox(height: 16),
+              _buildRemittancePreviewCard(
+                isDark,
+                cardBorder,
+                primaryAccent,
+                textPrimary,
+                textMuted,
+              ),
+            ],
+          ],
+        );
+      }
+    }
+
+    // Default summaries for other use cases
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_showPaymentDetails) ...[
+          _buildRemittancePreviewCard(
+            isDark,
+            cardBorder,
+            primaryAccent,
+            textPrimary,
+            textMuted,
+          ),
+          const SizedBox(height: 18),
+        ],
+        if (_showSignatures)
+          _buildSignaturesPreview(
+            isDark,
+            cardBorder,
+            primaryAccent,
+            textPrimary,
+            textMuted,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRemittancePreviewCard(
+    bool isDark,
+    Color cardBorder,
+    Color primaryAccent,
+    Color textPrimary,
+    Color textMuted,
+  ) {
+    final remittanceBg = isDark
+        ? const Color(0xFF1E293B)
+        : const Color(0xFFF8FAFC);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: remittanceBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_balance, size: 16, color: primaryAccent),
+              const SizedBox(width: 6),
+              Text(
+                'Payment & Remittance Instructions:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: primaryAccent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Bank: Standard Chartered Bank • SWIFT: SCBLKENX',
+            style: TextStyle(fontSize: 11, color: textPrimary),
+          ),
+          Text(
+            'Account Name: Antigravity Enterprise Solutions Ltd',
+            style: TextStyle(fontSize: 11, color: textPrimary),
+          ),
+          Text(
+            'Account No: 0108044921000 • Branch: Westlands Commercial Hub',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Note: Payment terms Net 30 days from date of invoice.',
+            style: TextStyle(
+              fontSize: 10.5,
+              fontStyle: FontStyle.italic,
+              color: textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinancialSummaryStack(
+    bool isDark,
+    Color cardBorder,
+    Color primaryAccent,
+    Color textPrimary,
+  ) {
+    return Column(
+      children: [
+        _summaryRow('Subtotal:', '\$15,750.00', textPrimary),
+        _summaryRow('Tax / VAT (16%):', '\$2,520.00', textPrimary),
+        _summaryRow('Processing & Delivery:', '\$150.00', textPrimary),
+        Divider(height: 12, color: cardBorder),
+        _summaryRow('Total:', '\$18,420.00', textPrimary, isBold: true),
+        Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: primaryAccent, width: 2)),
+          ),
+          padding: const EdgeInsets.only(bottom: 2),
+          child: _summaryRow(
+            'Balance Due:',
+            '\$18,420.00',
+            primaryAccent,
+            isBold: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSignaturesPreview(
+    bool isDark,
+    Color cardBorder,
+    Color primaryAccent,
+    Color textPrimary,
+    Color textMuted,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.draw, size: 16, color: primaryAccent),
+            const SizedBox(width: 6),
+            Text(
+              'Signatures',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: primaryAccent,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (_sigLayout == SignatureLayout.vertical)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final sig in _defaultSignatures) ...[
+                _singleSignature(
+                  sig.name ?? '',
+                  sig.title,
+                  sig.date ?? '',
+                  cardBorder,
+                  primaryAccent,
+                  textPrimary,
+                  textMuted,
+                ),
+                const SizedBox(height: 12),
+              ],
+            ],
+          )
+        else
+          Row(
+            children: [
+              for (final sig in _defaultSignatures.take(3))
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _singleSignature(
+                      sig.name ?? '',
+                      sig.title,
+                      sig.date ?? '',
+                      cardBorder,
+                      primaryAccent,
+                      textPrimary,
+                      textMuted,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _singleSignature(
+    String name,
+    String title,
+    String date,
+    Color cardBorder,
+    Color primaryAccent,
+    Color textPrimary,
+    Color textMuted,
+  ) {
+    return SizedBox(
+      width: 240,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (name.isNotEmpty)
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.bold,
+                color: textPrimary,
+              ),
+            ),
+          const SizedBox(height: 3),
+          Container(height: 1, width: 200, color: cardBorder),
+          const SizedBox(height: 3),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: primaryAccent,
+            ),
+          ),
+          if (date.isNotEmpty)
+            Text(
+              'Date: $date',
+              style: TextStyle(fontSize: 10, color: textMuted),
+            ),
+        ],
+      ),
     );
   }
 
   Widget _summaryRow(
     String label,
-    String value, {
+    String value,
+    Color color, {
     bool isBold = false,
-    Color? color,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      padding: const EdgeInsets.symmetric(vertical: 3.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: color ?? Colors.grey.shade800,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                color: color,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             value,
             style: TextStyle(
               fontSize: 11.5,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-              color: color ?? Colors.grey.shade900,
+              color: color,
             ),
           ),
         ],
       ),
     );
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Shared UI helpers
-// ═══════════════════════════════════════════════════════════════════════════════
+  Widget _buildCodeSnippetCard() {
+    final theme = Theme.of(context);
+    final code = _getConciseCodeSnippet();
 
-class _TabShell extends StatelessWidget {
-  const _TabShell({
-    required this.feature,
-    required this.description,
-    required this.badge,
-    required this.snippets,
-    required this.buttons,
-    this.header,
-  });
-
-  final String feature;
-  final String description;
-  final String badge;
-  final List<_CodeSnippet> snippets;
-  final List<_ExportButton> buttons;
-  final Widget? header;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: scheme.primaryContainer,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      feature,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: scheme.onPrimaryContainer,
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.code,
+                        size: 18,
+                        color: theme.colorScheme.primary,
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Ready-to-Use Dart Code',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  Chip(
-                    label: Text(badge, style: const TextStyle(fontSize: 11)),
-                    padding: EdgeInsets.zero,
-                  ),
-                ],
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.copy, size: 14),
+                  label: const Text('Copy', style: TextStyle(fontSize: 12)),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: code));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Code copied to clipboard!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: scheme.onPrimaryContainer.withValues(alpha: 0.85),
+              child: SelectableText(
+                code,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  height: 1.4,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        const SizedBox(height: 10),
-        const _InfoBanner(
-          '$_kFictional — generated reports contain synthetic data only.',
-        ),
-        const SizedBox(height: 10),
-        if (header != null) ...[header!, const SizedBox(height: 10)],
-        ...snippets,
-        const SizedBox(height: 12),
-        Wrap(spacing: 8, runSpacing: 8, children: buttons),
+      ),
+    );
+  }
+
+  String _getConciseCodeSnippet() {
+    switch (_selectedCase) {
+      case ReportUseCase.invoice:
+        return '''final report = EasyReport.fromMaps(
+  data: invoiceData,
+  title: 'Commercial Tax Invoice',
+  branding: ReportBranding(
+    companyName: 'Apex Innovations Global',
+    address: '100 Enterprise Way, Suite 400, Tech District, CA 94016',
+    phone: '+1 (800) 555-0199',
+    email: 'billing@apexinnovations.com',
+    taxId: 'US-EIN-98-7654321',
+    logoPath: 'assets/logo.png',
+  ),
+  pdfPageOrientation: ${_pdfOrientation.toString()},
+  tableBorderStyle: ${_borderStyle.toString()},
+  showSignatures: $_showSignatures,
+  paymentDetails: ${_showPaymentDetails ? "ReportPaymentDetails(...)" : "null"},
+);
+
+// One-liner export artifacts:
+final pdfArtifact = await report.exportPdf();
+final xlsxArtifact = await report.exportExcel();''';
+
+      case ReportUseCase.payroll:
+        return '''final definition = ReportDefinition<Employee>(
+  title: 'Corporate Payroll & Benefits Register',
+  branding: ReportBranding(
+    companyName: 'Acme Enterprise Corporation',
+    address: '450 Silicon Boulevard, Tower A, Austin, TX 78701',
+    logoPath: 'assets/logo.png',
+  ),
+  columns: [
+    ReportColumn(id: 'name', title: 'Name', accessor: (e) => e.name),
+    ReportColumn(id: 'department', title: 'Department', accessor: (e) => e.department),
+    ReportColumn(id: 'basicPay', title: 'Basic Salary', accessor: (e) => e.basicPay, type: ReportFieldType.money),
+    ReportColumn(id: 'allowances', title: 'Allowances', accessor: (e) => e.allowances, type: ReportFieldType.money),
+    ReportColumn(id: 'deductions', title: 'Deductions', accessor: (e) => e.deductions, type: ReportFieldType.money),
+    ReportColumn(id: 'netPay', title: 'Net Salary', accessor: (e) => e.netPay, type: ReportFieldType.money),
+  ],
+  analyses: [
+    ReportAnalysis(
+      id: 'payroll',
+      title: 'Department Salary Schedule',
+      groupBy: ['department'],
+      sheetPerCategory: $_sheetPerDept,
+      measures: [
+        ReportMeasure.sum(column: 'basicPay', currencyCode: 'USD', title: 'Basic Sum'),
+        ReportMeasure.sum(column: 'allowances', currencyCode: 'USD', title: 'Allowances Sum'),
+        ReportMeasure.sum(column: 'deductions', currencyCode: 'USD', title: 'Deductions Sum'),
+        ReportMeasure.sum(column: 'netPay', currencyCode: 'USD', title: 'Net Sum'),
+        ReportMeasure.count(id: 'count', title: 'Headcount'),
       ],
-    );
-  }
-}
+      showGrandTotal: true,
+    ),
+  ],
+);
 
-class _CodeSnippet extends StatelessWidget {
-  const _CodeSnippet({required this.label, required this.code});
-  final String label;
-  final String code;
+final prepared = await ReportEngine().prepare(definition: definition, records: employees);
+final pdf = await ReportEngine().exportPdf(prepared);
+final xlsx = await ReportEngine().exportExcel(prepared);''';
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: SelectableText(
-              code,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 11.5,
-                color: Color(0xFF64FFDA),
-                height: 1.5,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+      case ReportUseCase.salesCrossTab:
+        return '''final definition = ReportDefinition<Map<String, dynamic>>(
+  title: 'Executive Sales & Revenue Performance',
+  branding: ReportBranding(companyName: 'Global Strategic Holdings LLC', logoPath: 'assets/logo.png'),
+  columns: [...],
+  analyses: [
+    ReportAnalysis.crossTab(
+      id: 'matrix',
+      title: 'Quarterly Regional Matrix',
+      rowDimension: 'region',
+      columnDimension: 'quarter',
+      measure: ReportMeasure.sum(column: 'revenue', currencyCode: 'USD'),
+      showGrandTotal: true,
+    ),
+  ],
+);
 
-class _ExportButton extends StatelessWidget {
-  const _ExportButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.color,
-    this.filled = false,
-  });
+final prepared = await ReportEngine().prepare(definition: definition, records: salesData);
+final pdf = await ReportEngine().exportPdf(prepared);''';
 
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color? color;
-  final bool filled;
+      case ReportUseCase.agingValuation:
+        return '''final definition = ReportDefinition<Map<String, dynamic>>(
+  title: 'Accounts Receivable Aging Schedule',
+  branding: ReportBranding(companyName: 'Summit Financial Risk Advisors', logoPath: 'assets/logo.png'),
+  columns: [...],
+  analyses: [
+    ReportAnalysis(
+      id: 'aging',
+      title: 'Portfolio Schedule by Aging Bracket',
+      groupBy: ['status'],
+      measures: [
+        ReportMeasure.sum(column: 'amount', currencyCode: 'USD'),
+        ReportMeasure.average(column: 'daysOverdue'),
+      ],
+      showGrandTotal: true,
+      showSubtotals: true,
+    ),
+  ],
+);''';
 
-  @override
-  Widget build(BuildContext context) {
-    if (filled) {
-      return FilledButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-      );
+      case ReportUseCase.clinicalAudit:
+        return '''final definition = ReportDefinition<Map<String, dynamic>>(
+  title: 'Hospital Clinical Audit & Care Register',
+  branding: ReportBranding(companyName: 'St. Jude Metropolitan Health System', logoPath: 'assets/logo.png'),
+  columns: [...],
+  analyses: [
+    ReportAnalysis(
+      id: 'ward_summary',
+      title: 'Ward Operations & Stay Analysis',
+      groupBy: ['department'],
+      measures: [
+        ReportMeasure.sum(column: 'billAmount', currencyCode: 'USD'),
+        ReportMeasure.average(column: 'admissionDays'),
+        ReportMeasure.countNonNull(column: 'patientId'),
+      ],
+      showGrandTotal: true,
+    ),
+  ],
+);''';
     }
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18, color: color),
-      label: Text(label),
-    );
-  }
-}
-
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.amber.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.amber.shade300),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, size: 16, color: Colors.amber.shade900),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 11.5, color: Colors.amber.shade900),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
