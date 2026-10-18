@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 
@@ -11,6 +12,7 @@ import '../engine/report_options.dart';
 import '../engine/report_artifact.dart';
 import '../engine/report_column.dart';
 import '../models/report_models.dart';
+import '../utils/text_utils.dart';
 import 'report_chart_data.dart';
 
 /// Renders a [PreparedReport] into an Excel OpenXML (.xlsx) document.
@@ -56,6 +58,21 @@ class ExcelReportExporter {
     for (final analysis in report.analyses) {
       if (analysis.categorySheets != null &&
           analysis.categorySheets!.isNotEmpty) {
+        if (analysis.rows.isNotEmpty) {
+          final summarySheetName = _uniqueSheetName(
+            analysis.title,
+            usedSheetNames,
+            opts.maxSheetNameLength,
+          );
+          final sheet = sheetIndex == 0
+              ? workbook.worksheets[0]
+              : workbook.worksheets.addWithName(summarySheetName);
+          if (sheetIndex == 0) sheet.name = summarySheetName;
+          sheetIndex++;
+
+          _renderAnalysisSheet(sheet, analysis, branding, theme, opts, report);
+        }
+
         // Render each category as a separate sheet
         for (final catSheet in analysis.categorySheets!) {
           final rawName = '${analysis.title} - ${catSheet.categoryLabel}';
@@ -245,33 +262,100 @@ class ExcelReportExporter {
       );
     }
 
-    // 8. Bottom Financial Summaries & Payment / Bank Details
+    // 8. Bottom Financial Summaries, Payment Details & Signatures
     final summaryItems = options.summaryItems ?? report.summaryItems;
     final paymentDetails = options.paymentDetails ?? report.paymentDetails;
-    if ((summaryItems != null && summaryItems.isNotEmpty) ||
-        paymentDetails != null) {
-      currentRow += 2;
-      currentRow = _renderSummaryAndPaymentBlock(
-        sheet: sheet,
-        startRow: currentRow,
-        colCount: analysis.headers.length,
-        summaryItems: summaryItems,
-        paymentDetails: paymentDetails,
-        theme: theme,
-      );
-    }
+    final paymentPos =
+        options.paymentDetailsPosition ??
+        paymentDetails?.position ??
+        PaymentDetailsPosition.sideBySide;
 
-    // 9. Signature blocks if requested (separated from table)
-    if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
-      currentRow += 3;
-      currentRow = _renderSignatures(
-        sheet,
-        options.effectiveSignatures,
-        options.signatureLayout,
-        theme,
-        currentRow,
-        analysis.headers.length,
-      );
+    if (paymentPos == PaymentDetailsPosition.sideBySide) {
+      if ((summaryItems != null && summaryItems.isNotEmpty) ||
+          paymentDetails != null) {
+        currentRow += 2;
+        currentRow = _renderSummaryAndPaymentBlock(
+          sheet: sheet,
+          startRow: currentRow,
+          colCount: analysis.headers.length,
+          summaryItems: summaryItems,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
+      }
+      if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+        currentRow += 3;
+        currentRow = _renderSignatures(
+          sheet,
+          options.effectiveSignatures,
+          options.signatureLayout,
+          theme,
+          currentRow,
+          analysis.headers.length,
+        );
+      }
+    } else if (paymentPos == PaymentDetailsPosition.belowSummary) {
+      if (summaryItems != null && summaryItems.isNotEmpty) {
+        currentRow += 2;
+        currentRow = _renderSummaryTotalsOnly(
+          sheet: sheet,
+          startRow: currentRow,
+          colCount: analysis.headers.length,
+          summaryItems: summaryItems,
+          theme: theme,
+        );
+      }
+      if (paymentDetails != null) {
+        currentRow += 2;
+        currentRow = _renderPaymentDetailsOnly(
+          sheet: sheet,
+          startRow: currentRow,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
+      }
+      if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+        currentRow += 3;
+        currentRow = _renderSignatures(
+          sheet,
+          options.effectiveSignatures,
+          options.signatureLayout,
+          theme,
+          currentRow,
+          analysis.headers.length,
+        );
+      }
+    } else if (paymentPos == PaymentDetailsPosition.afterSignatures) {
+      if (summaryItems != null && summaryItems.isNotEmpty) {
+        currentRow += 2;
+        currentRow = _renderSummaryTotalsOnly(
+          sheet: sheet,
+          startRow: currentRow,
+          colCount: analysis.headers.length,
+          summaryItems: summaryItems,
+          theme: theme,
+        );
+      }
+      if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+        currentRow += 3;
+        currentRow = _renderSignatures(
+          sheet,
+          options.effectiveSignatures,
+          options.signatureLayout,
+          theme,
+          currentRow,
+          analysis.headers.length,
+        );
+      }
+      if (paymentDetails != null) {
+        currentRow += 2;
+        currentRow = _renderPaymentDetailsOnly(
+          sheet: sheet,
+          startRow: currentRow,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
+      }
     }
 
     // 10. Auto-fit and formatting constraints (strictly bounded to data rows)
@@ -373,33 +457,100 @@ class ExcelReportExporter {
       currentRow++;
     }
 
-    // Bottom Financial Summaries & Payment / Bank Details
+    // Bottom Financial Summaries, Payment Details & Signatures
     final summaryItems = options.summaryItems ?? report.summaryItems;
     final paymentDetails = options.paymentDetails ?? report.paymentDetails;
-    if ((summaryItems != null && summaryItems.isNotEmpty) ||
-        paymentDetails != null) {
-      currentRow += 2;
-      currentRow = _renderSummaryAndPaymentBlock(
-        sheet: sheet,
-        startRow: currentRow,
-        colCount: catSheet.headers.length,
-        summaryItems: summaryItems,
-        paymentDetails: paymentDetails,
-        theme: theme,
-      );
-    }
+    final paymentPos =
+        options.paymentDetailsPosition ??
+        paymentDetails?.position ??
+        PaymentDetailsPosition.sideBySide;
 
-    // Signatures if requested
-    if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
-      currentRow += 3;
-      currentRow = _renderSignatures(
-        sheet,
-        options.effectiveSignatures,
-        options.signatureLayout,
-        theme,
-        currentRow,
-        catSheet.headers.length,
-      );
+    if (paymentPos == PaymentDetailsPosition.sideBySide) {
+      if ((summaryItems != null && summaryItems.isNotEmpty) ||
+          paymentDetails != null) {
+        currentRow += 2;
+        currentRow = _renderSummaryAndPaymentBlock(
+          sheet: sheet,
+          startRow: currentRow,
+          colCount: catSheet.headers.length,
+          summaryItems: summaryItems,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
+      }
+      if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+        currentRow += 3;
+        currentRow = _renderSignatures(
+          sheet,
+          options.effectiveSignatures,
+          options.signatureLayout,
+          theme,
+          currentRow,
+          catSheet.headers.length,
+        );
+      }
+    } else if (paymentPos == PaymentDetailsPosition.belowSummary) {
+      if (summaryItems != null && summaryItems.isNotEmpty) {
+        currentRow += 2;
+        currentRow = _renderSummaryTotalsOnly(
+          sheet: sheet,
+          startRow: currentRow,
+          colCount: catSheet.headers.length,
+          summaryItems: summaryItems,
+          theme: theme,
+        );
+      }
+      if (paymentDetails != null) {
+        currentRow += 2;
+        currentRow = _renderPaymentDetailsOnly(
+          sheet: sheet,
+          startRow: currentRow,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
+      }
+      if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+        currentRow += 3;
+        currentRow = _renderSignatures(
+          sheet,
+          options.effectiveSignatures,
+          options.signatureLayout,
+          theme,
+          currentRow,
+          catSheet.headers.length,
+        );
+      }
+    } else if (paymentPos == PaymentDetailsPosition.afterSignatures) {
+      if (summaryItems != null && summaryItems.isNotEmpty) {
+        currentRow += 2;
+        currentRow = _renderSummaryTotalsOnly(
+          sheet: sheet,
+          startRow: currentRow,
+          colCount: catSheet.headers.length,
+          summaryItems: summaryItems,
+          theme: theme,
+        );
+      }
+      if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+        currentRow += 3;
+        currentRow = _renderSignatures(
+          sheet,
+          options.effectiveSignatures,
+          options.signatureLayout,
+          theme,
+          currentRow,
+          catSheet.headers.length,
+        );
+      }
+      if (paymentDetails != null) {
+        currentRow += 2;
+        currentRow = _renderPaymentDetailsOnly(
+          sheet: sheet,
+          startRow: currentRow,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
+      }
     }
 
     _finalizeSheetLayout(
@@ -812,13 +963,17 @@ class ExcelReportExporter {
 
     metrics.forEach((key, value) {
       final labelCell = sheet.getRangeByIndex(row, 1);
-      labelCell.setText(key);
+      labelCell.setText(toTitleCase(key));
       labelCell.cellStyle.bold = true;
       labelCell.cellStyle.fontSize = 10;
       labelCell.cellStyle.backColor = theme.groupHeaderBackgroundColor;
 
       final valCell = sheet.getRangeByIndex(row, 2);
-      valCell.setText(value?.toString() ?? '-');
+      String valStr = value?.toString() ?? '-';
+      if (value is num) {
+        valStr = NumberFormat('#,##0.##').format(value.toDouble());
+      }
+      valCell.setText(valStr);
       valCell.cellStyle.fontSize = 10;
       valCell.cellStyle.backColor = theme.zebraLightColor;
       row++;
@@ -1044,6 +1199,152 @@ class ExcelReportExporter {
     return math.max(paymentEndRow, summaryEndRow) + 1;
   }
 
+  int _renderSummaryTotalsOnly({
+    required Worksheet sheet,
+    required int startRow,
+    required int colCount,
+    required List<ReportSummaryItem> summaryItems,
+    required ReportTheme theme,
+  }) {
+    int sRow = startRow;
+    final int labelCol = math.max(1, colCount - 1);
+    final int valCol = colCount;
+
+    for (final item in summaryItems) {
+      final labelCell = sheet.getRangeByIndex(sRow, labelCol);
+      labelCell.setText(item.label);
+      labelCell.cellStyle.fontName = theme.fontFamily;
+      labelCell.cellStyle.hAlign = HAlignType.right;
+      labelCell.cellStyle.fontSize = item.isEmphasized ? 11 : 9.5;
+      labelCell.cellStyle.bold = item.isBold || item.isEmphasized;
+      if (item.isEmphasized) {
+        labelCell.cellStyle.fontColor = theme.primaryColor;
+      }
+
+      final valCell = sheet.getRangeByIndex(sRow, valCol);
+      valCell.cellStyle.fontName = theme.fontFamily;
+      if (item.value is num) {
+        valCell.setNumber((item.value as num).toDouble());
+        if (item.currencyCode != null) {
+          valCell.numberFormat = '${item.currencyCode} #,##0.00';
+        } else {
+          valCell.numberFormat = '#,##0.00';
+        }
+      } else {
+        valCell.setText(item.value.toString());
+      }
+      valCell.cellStyle.hAlign = HAlignType.right;
+      valCell.cellStyle.fontSize = item.isEmphasized ? 11 : 9.5;
+      valCell.cellStyle.bold = item.isBold || item.isEmphasized;
+      if (item.isEmphasized) {
+        valCell.cellStyle.fontColor = theme.primaryColor;
+      }
+
+      if (item.showTopBorder) {
+        labelCell.cellStyle.borders.top.lineStyle = LineStyle.thin;
+        valCell.cellStyle.borders.top.lineStyle = LineStyle.thin;
+        labelCell.cellStyle.borders.top.color = theme.borderColor;
+        valCell.cellStyle.borders.top.color = theme.borderColor;
+      }
+      if (item.showDoubleBottomBorder) {
+        labelCell.cellStyle.borders.bottom.lineStyle = LineStyle.double;
+        valCell.cellStyle.borders.bottom.lineStyle = LineStyle.double;
+        labelCell.cellStyle.borders.bottom.color = theme.accentColor;
+        valCell.cellStyle.borders.bottom.color = theme.accentColor;
+      }
+      sRow++;
+    }
+    return sRow;
+  }
+
+  int _renderPaymentDetailsOnly({
+    required Worksheet sheet,
+    required int startRow,
+    required ReportPaymentDetails paymentDetails,
+    required ReportTheme theme,
+  }) {
+    int pRow = startRow;
+    final headerCell = sheet.getRangeByIndex(pRow, 1);
+    final title = paymentDetails.title ?? 'Payment & Remittance Instructions:';
+    headerCell.setText(title.endsWith(':') ? title : '$title:');
+    headerCell.cellStyle.fontName = theme.fontFamily;
+    headerCell.cellStyle.bold = true;
+    headerCell.cellStyle.fontSize = 9.5;
+    headerCell.cellStyle.fontColor = theme.primaryColor;
+    pRow++;
+
+    if (paymentDetails.bankName != null) {
+      final lbl = sheet.getRangeByIndex(pRow, 1);
+      lbl.setText('Bank Name:');
+      lbl.cellStyle.fontName = theme.fontFamily;
+      lbl.cellStyle.fontSize = 9;
+      final val = sheet.getRangeByIndex(pRow, 2);
+      val.setText(paymentDetails.bankName!);
+      val.cellStyle.fontName = theme.fontFamily;
+      val.cellStyle.fontSize = 9;
+      pRow++;
+    }
+    if (paymentDetails.accountName != null) {
+      final lbl = sheet.getRangeByIndex(pRow, 1);
+      lbl.setText('Account Name:');
+      lbl.cellStyle.fontName = theme.fontFamily;
+      lbl.cellStyle.fontSize = 9;
+      final val = sheet.getRangeByIndex(pRow, 2);
+      val.setText(paymentDetails.accountName!);
+      val.cellStyle.fontName = theme.fontFamily;
+      val.cellStyle.fontSize = 9;
+      pRow++;
+    }
+    if (paymentDetails.accountNumber != null) {
+      final lbl = sheet.getRangeByIndex(pRow, 1);
+      lbl.setText('Account No:');
+      lbl.cellStyle.fontName = theme.fontFamily;
+      lbl.cellStyle.fontSize = 9;
+      final val = sheet.getRangeByIndex(pRow, 2);
+      val.setText(paymentDetails.accountNumber!);
+      val.cellStyle.fontName = theme.fontFamily;
+      val.cellStyle.fontSize = 9;
+      val.cellStyle.bold = true;
+      pRow++;
+    }
+    if (paymentDetails.branch != null) {
+      final lbl = sheet.getRangeByIndex(pRow, 1);
+      lbl.setText('Branch:');
+      lbl.cellStyle.fontName = theme.fontFamily;
+      lbl.cellStyle.fontSize = 9;
+      final val = sheet.getRangeByIndex(pRow, 2);
+      val.setText(paymentDetails.branch!);
+      val.cellStyle.fontName = theme.fontFamily;
+      val.cellStyle.fontSize = 9;
+      pRow++;
+    }
+    if (paymentDetails.swiftCode != null) {
+      final lbl = sheet.getRangeByIndex(pRow, 1);
+      lbl.setText('SWIFT / BIC:');
+      lbl.cellStyle.fontName = theme.fontFamily;
+      lbl.cellStyle.fontSize = 9;
+      final val = sheet.getRangeByIndex(pRow, 2);
+      val.setText(paymentDetails.swiftCode!);
+      val.cellStyle.fontName = theme.fontFamily;
+      val.cellStyle.fontSize = 9;
+      pRow++;
+    }
+    for (final note in paymentDetails.termsOrNotes) {
+      final lbl = sheet.getRangeByIndex(pRow, 1);
+      lbl.setText('Note:');
+      lbl.cellStyle.fontName = theme.fontFamily;
+      lbl.cellStyle.fontSize = 8.5;
+      lbl.cellStyle.italic = true;
+      final val = sheet.getRangeByIndex(pRow, 2);
+      val.setText(note);
+      val.cellStyle.fontName = theme.fontFamily;
+      val.cellStyle.fontSize = 8.5;
+      val.cellStyle.italic = true;
+      pRow++;
+    }
+    return pRow;
+  }
+
   int _renderSignatures(
     Worksheet sheet,
     List<ReportSignature> signatures,
@@ -1099,33 +1400,39 @@ class ExcelReportExporter {
         return row + maxBlockRows + 2;
 
       case SignatureLayout.vertical:
-        // Transposed: signatures stacked vertically row-by-row
+        // Stack all signatures vertically in ONE column (no two columns)
         for (final sig in signatures) {
-          final titleCell = sheet.getRangeByIndex(row, 1);
-          titleCell.setText('${sig.title}:');
-          titleCell.cellStyle.bold = true;
-          titleCell.cellStyle.fontSize = 9.5;
-          titleCell.cellStyle.fontColor = theme.primaryColor;
-
-          final signCell = sheet.getRangeByIndex(row, 2);
           if (sig.name != null && sig.name!.isNotEmpty) {
-            signCell.setText(sig.name!);
-            signCell.cellStyle.italic = true;
-            signCell.cellStyle.bold = true;
-          } else {
-            signCell.setText('______________________');
-            signCell.cellStyle.fontColor = '#888888';
+            final nameCell = sheet.getRangeByIndex(row, 1);
+            nameCell.setText(sig.name!);
+            nameCell.cellStyle.fontSize = 10;
+            nameCell.cellStyle.italic = true;
+            nameCell.cellStyle.bold = true;
+            row++;
           }
 
+          final lineCell = sheet.getRangeByIndex(row, 1);
+          lineCell.setText('______________________');
+          lineCell.cellStyle.fontColor = '#888888';
+          row++;
+
+          final titleCell = sheet.getRangeByIndex(row, 1);
+          titleCell.setText(sig.title);
+          titleCell.cellStyle.bold = true;
+          titleCell.cellStyle.fontSize = 9;
+          titleCell.cellStyle.fontColor = theme.primaryColor;
+          row++;
+
           if (sig.date != null && sig.date!.isNotEmpty) {
-            final dateCell = sheet.getRangeByIndex(row, 3);
+            final dateCell = sheet.getRangeByIndex(row, 1);
             dateCell.setText('Date: ${sig.date!}');
             dateCell.cellStyle.fontSize = 8.5;
             dateCell.cellStyle.fontColor = '#666666';
+            row++;
           }
-          row++;
+          row++; // Blank row spacing between signature blocks
         }
-        return row + 2;
+        return row + 1;
 
       case SignatureLayout.split:
         // Split: Left side (Prepared / Date) & Right side (Checked / Approved / Authorized)

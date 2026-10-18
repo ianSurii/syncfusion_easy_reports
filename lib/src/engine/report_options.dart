@@ -1,3 +1,4 @@
+import 'package:syncfusion_flutter_pdf/pdf.dart' show PdfPageOrientation;
 import '../models/report_models.dart';
 
 /// How wide tables should be handled in PDF rendering.
@@ -68,6 +69,9 @@ class ExcelExportOptions {
   /// Optional wire payment / bank remittance details and terms printed below the table.
   final ReportPaymentDetails? paymentDetails;
 
+  /// Optional position override for payment details relative to totals and signatures.
+  final PaymentDetailsPosition? paymentDetailsPosition;
+
   const ExcelExportOptions({
     this.includeSummarySheet = true,
     this.freezeHeaderRow = true,
@@ -87,6 +91,7 @@ class ExcelExportOptions {
     this.tableBorderStyle = TableBorderStyle.clean,
     this.summaryItems,
     this.paymentDetails,
+    this.paymentDetailsPosition,
   });
 
   /// Resolves the active list of [ReportSignature] items.
@@ -103,8 +108,22 @@ class PdfExportOptions {
   /// Standard page size name: 'A4', 'A5', 'Letter', 'Legal'. Default is 'A4'.
   final String pageSize;
 
-  /// Page orientation: 'portrait' or 'landscape'.
+  /// Page orientation string: 'portrait' or 'landscape'.
   final String orientation;
+
+  /// Typed page orientation enum (`PdfPageOrientation.portrait` or `PdfPageOrientation.landscape`).
+  /// Takes precedence over [orientation] string when specified.
+  final PdfPageOrientation? pageOrientation;
+
+  /// Effective PDF orientation enum.
+  PdfPageOrientation get effectiveOrientation =>
+      pageOrientation ??
+      (orientation.toLowerCase() == 'landscape'
+          ? PdfPageOrientation.landscape
+          : PdfPageOrientation.portrait);
+
+  /// Whether landscape orientation is active.
+  bool get isLandscape => effectiveOrientation == PdfPageOrientation.landscape;
 
   /// Page margin in points (default: 15.0).
   final double margin;
@@ -176,9 +195,13 @@ class PdfExportOptions {
   /// Optional wire payment / bank remittance details and terms printed below the table.
   final ReportPaymentDetails? paymentDetails;
 
+  /// Optional position override for payment details relative to totals and signatures.
+  final PaymentDetailsPosition? paymentDetailsPosition;
+
   const PdfExportOptions({
     this.pageSize = 'A4',
     this.orientation = 'portrait',
+    this.pageOrientation,
     this.margin = 15.0,
     this.marginLeft,
     this.marginTop,
@@ -203,6 +226,7 @@ class PdfExportOptions {
     this.tableBorderStyle = TableBorderStyle.clean,
     this.summaryItems,
     this.paymentDetails,
+    this.paymentDetailsPosition,
   });
 
   /// Resolves the active list of [ReportSignature] items.
@@ -219,7 +243,7 @@ class PdfExportOptions {
     if (signatureLayout != SignatureLayout.adaptive) {
       return signatureLayout;
     }
-    if (orientation.toLowerCase() == 'portrait') {
+    if (!isLandscape) {
       return SignatureLayout.vertical; // Stacked in portrait
     }
     return SignatureLayout.split;

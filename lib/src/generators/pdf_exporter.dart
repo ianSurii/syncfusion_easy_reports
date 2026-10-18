@@ -14,6 +14,7 @@ import '../engine/report_options.dart';
 import '../engine/report_artifact.dart';
 import '../engine/report_column.dart';
 import '../models/report_models.dart';
+import '../utils/text_utils.dart';
 import 'report_chart_data.dart';
 
 /// Renders a [PreparedReport] into an Adobe PDF (.pdf) document.
@@ -26,18 +27,73 @@ class PdfReportExporter {
     PdfExportOptions? options,
   }) async {
     _log.info('Exporting PDF report: "${report.title}"');
-    final opts = options ?? const PdfExportOptions();
 
-    // 1. Validate options
-    opts.validate();
+    // 1. Resolve initial options falling back to prepared report settings
+    final initialOpts =
+        options ??
+        PdfExportOptions(
+          pageSize: report.settings.pageSize,
+          orientation: report.settings.orientation,
+          pageOrientation: report.settings.pageOrientation,
+          summaryItems: report.summaryItems,
+          paymentDetails: report.paymentDetails,
+        );
+
+    // Validate options
+    initialOpts.validate();
+
+    // 2. Resolve orientation with autoLandscape wide table strategy
+    bool isLandscape = initialOpts.isLandscape;
+    final wideStrategy = initialOpts.wideTableStrategy;
+    final autoThreshold = initialOpts.autoLandscapeThreshold;
+    if (!isLandscape && wideStrategy == PdfWideTableStrategy.autoLandscape) {
+      for (final a in report.analyses) {
+        if (a.headers.length >= autoThreshold) {
+          isLandscape = true;
+          break;
+        }
+      }
+    }
+
+    final opts = isLandscape && !initialOpts.isLandscape
+        ? PdfExportOptions(
+            pageSize: initialOpts.pageSize,
+            orientation: 'landscape',
+            pageOrientation: PdfPageOrientation.landscape,
+            margin: initialOpts.margin,
+            marginLeft: initialOpts.marginLeft,
+            marginTop: initialOpts.marginTop,
+            marginRight: initialOpts.marginRight,
+            marginBottom: initialOpts.marginBottom,
+            repeatHeaders: initialOpts.repeatHeaders,
+            showPageNumbers: initialOpts.showPageNumbers,
+            wideTableStrategy: initialOpts.wideTableStrategy,
+            autoLandscapeThreshold: initialOpts.autoLandscapeThreshold,
+            enableEncryption: initialOpts.enableEncryption,
+            userPassword: initialOpts.userPassword,
+            ownerPassword: initialOpts.ownerPassword,
+            allowPrinting: initialOpts.allowPrinting,
+            allowCopy: initialOpts.allowCopy,
+            pdfAConformance: initialOpts.pdfAConformance,
+            emptyStateMessage: initialOpts.emptyStateMessage,
+            showSignatures: initialOpts.showSignatures,
+            signatureLabels: initialOpts.signatureLabels,
+            signatures: initialOpts.signatures,
+            signatureLayout: initialOpts.signatureLayout,
+            tableBorderStyle: initialOpts.tableBorderStyle,
+            summaryItems: initialOpts.summaryItems,
+            paymentDetails: initialOpts.paymentDetails,
+            paymentDetailsPosition: initialOpts.paymentDetailsPosition,
+          )
+        : initialOpts;
 
     final PdfDocument document = PdfDocument();
     final theme = report.theme;
 
-    // 2. Configure Page Setup
-    _configurePageSettings(document, opts);
+    // 3. Configure Page Setup
+    _configurePageSettings(document, opts, isLandscape: isLandscape);
 
-    // 3. Pre-resolve logo
+    // 4. Pre-resolve logo
     List<int>? logoBytes;
     if (report.branding != null) {
       logoBytes = await _resolveLogo(report.branding!);
@@ -47,11 +103,11 @@ class PdfReportExporter {
         ? report.branding!.copyWithBytes(logoBytes)
         : report.branding;
 
-    // 4. Configure Header & Footer templates
+    // 5. Configure Header & Footer templates
     _addHeaderTemplate(document, branding, theme, report.title);
     _addFooterTemplate(document, theme, opts);
 
-    // 5. Render analyses / sections
+    // 6. Render analyses / sections
     for (int i = 0; i < report.analyses.length; i++) {
       final analysis = report.analyses[i];
       if (analysis.categorySheets != null &&
@@ -81,16 +137,6 @@ class PdfReportExporter {
       }
     }
 
-    // 6. Signatures if requested
-    if (opts.showSignatures && opts.effectiveSignatures.isNotEmpty) {
-      _renderSignatures(
-        document,
-        theme,
-        opts.effectiveSignatures,
-        opts.resolveSignatureLayout(),
-      );
-    }
-
     // 7. Configure PDF Security / Encryption
     _configureSecurity(document, opts);
 
@@ -117,7 +163,11 @@ class PdfReportExporter {
     );
   }
 
-  void _configurePageSettings(PdfDocument document, PdfExportOptions options) {
+  void _configurePageSettings(
+    PdfDocument document,
+    PdfExportOptions options, {
+    required bool isLandscape,
+  }) {
     switch (options.pageSize.toUpperCase()) {
       case 'A5':
         document.pageSettings.size = PdfPageSize.a5;
@@ -134,7 +184,7 @@ class PdfReportExporter {
         break;
     }
 
-    if (options.orientation.toLowerCase() == 'landscape') {
+    if (isLandscape) {
       document.pageSettings.orientation = PdfPageOrientation.landscape;
     } else {
       document.pageSettings.orientation = PdfPageOrientation.portrait;
@@ -458,6 +508,20 @@ class PdfReportExporter {
     double curY = (result?.bounds.bottom ?? y) + 16;
     final double targetPageHeight = targetPage.getClientSize().height;
 
+    // Render Summary Metrics Card if present (formatted to Title Case)
+    if (analysis.summaryMetrics.isNotEmpty) {
+      if (curY + 80 > targetPageHeight - 35) {
+        targetPage = document.pages.add();
+        curY = 16;
+      }
+      curY = _renderSummaryMetricsBlock(
+        page: targetPage,
+        metrics: analysis.summaryMetrics,
+        theme: theme,
+        startY: curY,
+      );
+    }
+
     // Render Visual Chart Breakdown if configured
     if (analysis.chart != null) {
       if (curY + analysis.chart!.height + 35 > targetPageHeight - 35) {
@@ -476,17 +540,96 @@ class PdfReportExporter {
     // Render Bottom Financial Summaries & Payment / Bank Details
     final summaryItems = options.summaryItems ?? report.summaryItems;
     final paymentDetails = options.paymentDetails ?? report.paymentDetails;
-    if ((summaryItems != null && summaryItems.isNotEmpty) ||
-        paymentDetails != null) {
-      if (curY + 120 > targetPageHeight - 35) {
-        targetPage = document.pages.add();
-        curY = 16;
+    final paymentPos =
+        options.paymentDetailsPosition ??
+        paymentDetails?.position ??
+        PaymentDetailsPosition.sideBySide;
+
+    if (paymentPos == PaymentDetailsPosition.sideBySide) {
+      if ((summaryItems != null && summaryItems.isNotEmpty) ||
+          paymentDetails != null) {
+        if (curY + 120 > targetPageHeight - 35) {
+          targetPage = document.pages.add();
+          curY = 16;
+        }
+        curY = _renderSummaryAndPaymentBlock(
+          document: document,
+          page: targetPage,
+          startY: curY,
+          summaryItems: summaryItems,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
       }
-      curY = _renderSummaryAndPaymentBlock(
+    } else if (paymentPos == PaymentDetailsPosition.belowSummary) {
+      if (summaryItems != null && summaryItems.isNotEmpty) {
+        if (curY + 80 > targetPageHeight - 35) {
+          targetPage = document.pages.add();
+          curY = 16;
+        }
+        curY = _renderSummaryItemsStandalone(
+          page: targetPage,
+          startY: curY,
+          summaryItems: summaryItems,
+          theme: theme,
+        );
+      }
+      if (paymentDetails != null) {
+        if (curY + 80 > targetPageHeight - 35) {
+          targetPage = document.pages.add();
+          curY = 16;
+        }
+        curY = _renderPaymentDetailsStandalone(
+          page: targetPage,
+          startY: curY,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
+      }
+    } else if (paymentPos == PaymentDetailsPosition.afterSignatures) {
+      // In afterSignatures mode, render summary totals here, while payment details are deferred after signatures
+      if (summaryItems != null && summaryItems.isNotEmpty) {
+        if (curY + 80 > targetPageHeight - 35) {
+          targetPage = document.pages.add();
+          curY = 16;
+        }
+        curY = _renderSummaryItemsStandalone(
+          page: targetPage,
+          startY: curY,
+          summaryItems: summaryItems,
+          theme: theme,
+        );
+      }
+    }
+
+    // Signatures for this section if requested
+    PdfPage lastSigPage = targetPage;
+    double lastSigBottomY = curY;
+    if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+      final sigRes = _renderSignatures(
         document: document,
         page: targetPage,
-        startY: curY,
-        summaryItems: summaryItems,
+        startY: curY + 16,
+        theme: theme,
+        signatures: options.effectiveSignatures,
+        layout: options.resolveSignatureLayout(),
+      );
+      lastSigPage = sigRes.page;
+      lastSigBottomY = sigRes.bottomY;
+    }
+
+    // Payment Details after signatures if configured
+    if (paymentDetails != null &&
+        paymentPos == PaymentDetailsPosition.afterSignatures) {
+      PdfPage afterPage = lastSigPage;
+      double afterY = lastSigBottomY + 16;
+      if (afterY + 90 > afterPage.getClientSize().height - 35) {
+        afterPage = document.pages.add();
+        afterY = 16;
+      }
+      _renderPaymentDetailsStandalone(
+        page: afterPage,
+        startY: afterY,
         paymentDetails: paymentDetails,
         theme: theme,
       );
@@ -532,19 +675,98 @@ class PdfReportExporter {
 
     final summaryItems = options.summaryItems ?? report.summaryItems;
     final paymentDetails = options.paymentDetails ?? report.paymentDetails;
+    final paymentPos =
+        options.paymentDetailsPosition ??
+        paymentDetails?.position ??
+        PaymentDetailsPosition.sideBySide;
+
+    PdfPage targetPage = result?.page ?? page;
+    double curY = (result?.bounds.bottom ?? y) + 16;
+
     if ((summaryItems != null && summaryItems.isNotEmpty) ||
         paymentDetails != null) {
-      PdfPage targetPage = result?.page ?? page;
-      double curY = (result?.bounds.bottom ?? y) + 16;
-      if (curY + 120 > targetPage.getClientSize().height - 35) {
-        targetPage = document.pages.add();
-        curY = 16;
+      if (paymentPos == PaymentDetailsPosition.sideBySide) {
+        if (curY + 120 > targetPage.getClientSize().height - 35) {
+          targetPage = document.pages.add();
+          curY = 16;
+        }
+        _renderSummaryAndPaymentBlock(
+          document: document,
+          page: targetPage,
+          startY: curY,
+          summaryItems: summaryItems,
+          paymentDetails: paymentDetails,
+          theme: theme,
+        );
+      } else if (paymentPos == PaymentDetailsPosition.belowSummary) {
+        if (summaryItems != null && summaryItems.isNotEmpty) {
+          if (curY + 80 > targetPage.getClientSize().height - 35) {
+            targetPage = document.pages.add();
+            curY = 16;
+          }
+          curY = _renderSummaryItemsStandalone(
+            page: targetPage,
+            startY: curY,
+            summaryItems: summaryItems,
+            theme: theme,
+          );
+        }
+        if (paymentDetails != null) {
+          if (curY + 80 > targetPage.getClientSize().height - 35) {
+            targetPage = document.pages.add();
+            curY = 16;
+          }
+          _renderPaymentDetailsStandalone(
+            page: targetPage,
+            startY: curY,
+            paymentDetails: paymentDetails,
+            theme: theme,
+          );
+        }
+      } else if (paymentPos == PaymentDetailsPosition.afterSignatures) {
+        if (summaryItems != null && summaryItems.isNotEmpty) {
+          if (curY + 80 > targetPage.getClientSize().height - 35) {
+            targetPage = document.pages.add();
+            curY = 16;
+          }
+          _renderSummaryItemsStandalone(
+            page: targetPage,
+            startY: curY,
+            summaryItems: summaryItems,
+            theme: theme,
+          );
+        }
       }
-      _renderSummaryAndPaymentBlock(
+    }
+
+    // Signatures for this category sheet if requested
+    PdfPage lastSigPage = targetPage;
+    double lastSigBottomY = curY;
+    if (options.showSignatures && options.effectiveSignatures.isNotEmpty) {
+      final sigRes = _renderSignatures(
         document: document,
         page: targetPage,
-        startY: curY,
-        summaryItems: summaryItems,
+        startY: curY + 16,
+        theme: theme,
+        signatures: options.effectiveSignatures,
+        layout: options.resolveSignatureLayout(),
+      );
+      lastSigPage = sigRes.page;
+      lastSigBottomY = sigRes.bottomY;
+    }
+
+    // Payment Details after signatures if configured
+    if (paymentDetails != null &&
+        paymentPos == PaymentDetailsPosition.afterSignatures) {
+      PdfPage afterPage = lastSigPage;
+      double afterY = lastSigBottomY + 16;
+      if (afterY + 90 > afterPage.getClientSize().height - 35) {
+        afterPage = document.pages.add();
+        afterY = 16;
+      }
+      _renderPaymentDetailsStandalone(
+        page: afterPage,
+        startY: afterY,
         paymentDetails: paymentDetails,
         theme: theme,
       );
@@ -561,11 +783,29 @@ class PdfReportExporter {
     required double startY,
   }) {
     final double pageWidth = page.getClientSize().width;
+    const double tableInset =
+        3.0; // Inset from left and right page boundaries to prevent corner/edge cropping
+    final double tableWidth = math.max(0.0, pageWidth - (tableInset * 2));
     final grid = PdfGrid();
     grid.columns.add(count: headers.length);
 
+    // Apply proportional column width calculation so table fits within tableWidth without cropping
+    _calculateAndApplyColumnWidths(
+      grid: grid,
+      headers: headers,
+      rows: rows,
+      tableWidth: tableWidth,
+      options: options,
+    );
+
     // Repeat header on every page break
     grid.repeatHeader = options.repeatHeaders;
+    grid.style.cellPadding = PdfPaddings(
+      left: 5.0,
+      right: 5.0,
+      top: 4.0,
+      bottom: 4.0,
+    );
 
     final borderStyle = options.tableBorderStyle;
     final fontFam = _toPdfFontFamily(theme.fontFamily);
@@ -579,6 +819,7 @@ class PdfReportExporter {
       headerRow.cells[c].stringFormat = PdfStringFormat(
         alignment: _toPdfAlignment(h.alignment),
         lineAlignment: PdfVerticalAlignment.middle,
+        wordWrap: PdfWordWrapType.word,
       );
       headerRow.cells[c].style = PdfGridCellStyle(
         font: PdfStandardFont(
@@ -649,6 +890,8 @@ class PdfReportExporter {
           gridRow.cells[c].value = pCell.formattedText;
           gridRow.cells[c].stringFormat = PdfStringFormat(
             alignment: _toPdfAlignment(pCell.alignment),
+            lineAlignment: PdfVerticalAlignment.middle,
+            wordWrap: PdfWordWrapType.word,
           );
           gridRow.cells[c].style = PdfGridCellStyle(
             font: PdfStandardFont(
@@ -673,6 +916,8 @@ class PdfReportExporter {
           gridRow.cells[c].value = pCell.formattedText;
           gridRow.cells[c].stringFormat = PdfStringFormat(
             alignment: _toPdfAlignment(pCell.alignment),
+            lineAlignment: PdfVerticalAlignment.middle,
+            wordWrap: PdfWordWrapType.word,
           );
           gridRow.cells[c].style = PdfGridCellStyle(
             font: PdfStandardFont(fontFam, theme.fontSizeBody),
@@ -725,6 +970,8 @@ class PdfReportExporter {
         totRow.cells[c].value = pCell.formattedText;
         totRow.cells[c].stringFormat = PdfStringFormat(
           alignment: _toPdfAlignment(pCell.alignment),
+          lineAlignment: PdfVerticalAlignment.middle,
+          wordWrap: PdfWordWrapType.word,
         );
         totRow.cells[c].style = PdfGridCellStyle(
           font: PdfStandardFont(
@@ -778,12 +1025,342 @@ class PdfReportExporter {
       }
     }
 
-    // Draw Grid on page
+    // Draw Grid on page with safe inset
     return grid.draw(
       page: page,
-      bounds: Rect.fromLTWH(0, startY, pageWidth, 0),
+      bounds: Rect.fromLTWH(tableInset, startY, tableWidth, 0),
       format: PdfLayoutFormat(layoutType: PdfLayoutType.paginate),
     );
+  }
+
+  void _calculateAndApplyColumnWidths({
+    required PdfGrid grid,
+    required List<PreparedColumnHeader> headers,
+    required List<PreparedRow> rows,
+    required double tableWidth,
+    required PdfExportOptions options,
+  }) {
+    if (headers.isEmpty ||
+        grid.columns.count < headers.length ||
+        tableWidth <= 0) {
+      return;
+    }
+
+    final List<double> weights = [];
+    final sampleRows = rows.take(60).toList();
+
+    for (int c = 0; c < headers.length; c++) {
+      final header = headers[c];
+      if (header.width != null && header.width! > 0) {
+        weights.add(header.width!);
+        continue;
+      }
+
+      int maxLen = header.title.length;
+      for (final r in sampleRows) {
+        if (c < r.cells.length) {
+          final len = r.cells[c].formattedText.length;
+          if (len > maxLen) {
+            maxLen = len;
+          }
+        }
+      }
+
+      // Constrain weight: type-aware minimum characters, at most 45 chars
+      double minChars = 7.0;
+      if (header.fieldType == ReportFieldType.money ||
+          header.currencyCode != null) {
+        minChars = 12.0;
+      } else if (header.fieldType == ReportFieldType.date ||
+          header.fieldType == ReportFieldType.dateTime) {
+        minChars = 10.0;
+      }
+      final double weight = math.max(
+        minChars,
+        math.min(45.0, maxLen.toDouble()),
+      );
+      weights.add(weight);
+    }
+
+    final double totalWeight = weights.fold(0.0, (sum, w) => sum + w);
+    if (totalWeight <= 0) return;
+
+    final double safeWidth = math.max(0, tableWidth - 1.0);
+    for (int c = 0; c < headers.length; c++) {
+      grid.columns[c].width = (weights[c] / totalWeight) * safeWidth;
+    }
+  }
+
+  double _renderSummaryMetricsBlock({
+    required PdfPage page,
+    required Map<String, dynamic> metrics,
+    required ReportTheme theme,
+    required double startY,
+  }) {
+    if (metrics.isEmpty) return startY;
+    final double pageWidth = page.getClientSize().width;
+    final fontFam = _toPdfFontFamily(theme.fontFamily);
+    final titleFont = PdfStandardFont(fontFam, 10, style: PdfFontStyle.bold);
+    final labelFont = PdfStandardFont(fontFam, 8, style: PdfFontStyle.bold);
+    final valFont = PdfStandardFont(fontFam, 9.5, style: PdfFontStyle.bold);
+
+    final primaryBrush = PdfSolidBrush(
+      _parseHexColor(theme.primaryColor, PdfColor(21, 101, 192)),
+    );
+    final labelBrush = PdfSolidBrush(PdfColor(100, 100, 100));
+    final valBrush = PdfSolidBrush(PdfColor(30, 30, 30));
+    final cardBorderPen = PdfPen(
+      _parseHexColor(theme.borderColor, PdfColor(220, 220, 220)),
+      width: 0.8,
+    );
+    final cardBgBrush = PdfSolidBrush(
+      _parseHexColor(theme.zebraLightColor, PdfColor(248, 249, 250)),
+    );
+
+    final entries = metrics.entries.toList();
+    final int cols = math.min(
+      entries.length,
+      (pageWidth / 110).floor().clamp(1, 4),
+    );
+    final int numRows = (entries.length / cols).ceil();
+    final double cardHeight = 24.0 + (numRows * 30.0) + 8.0;
+
+    // Draw background card
+    page.graphics.drawRectangle(
+      pen: cardBorderPen,
+      brush: cardBgBrush,
+      bounds: Rect.fromLTWH(0, startY, pageWidth, cardHeight),
+    );
+
+    // Title
+    page.graphics.drawString(
+      'Summary Metrics',
+      titleFont,
+      brush: primaryBrush,
+      bounds: Rect.fromLTWH(10, startY + 6, pageWidth - 20, 14),
+    );
+
+    final double colWidth = (pageWidth - 20) / cols;
+    for (int i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      final colIndex = i % cols;
+      final rowIndex = i ~/ cols;
+      final x = 10 + (colIndex * colWidth);
+      final y = startY + 24 + (rowIndex * 30.0);
+
+      // Label in Title Case
+      final label = toTitleCase(entry.key);
+      page.graphics.drawString(
+        label,
+        labelFont,
+        brush: labelBrush,
+        bounds: Rect.fromLTWH(x, y, colWidth - 8, 11),
+      );
+
+      // Value formatted
+      String valStr = entry.value.toString();
+      if (entry.value is num) {
+        valStr = NumberFormat('#,##0.##').format(entry.value);
+      }
+      page.graphics.drawString(
+        valStr,
+        valFont,
+        brush: valBrush,
+        bounds: Rect.fromLTWH(x, y + 11, colWidth - 8, 14),
+      );
+    }
+
+    return startY + cardHeight + 12;
+  }
+
+  double _renderSummaryItemsStandalone({
+    required PdfPage page,
+    required double startY,
+    required List<ReportSummaryItem> summaryItems,
+    required ReportTheme theme,
+  }) {
+    final double pageWidth = page.getClientSize().width;
+    final fontFam = _toPdfFontFamily(theme.fontFamily);
+    final regularFont = PdfStandardFont(fontFam, 8.5);
+    final boldFont = PdfStandardFont(fontFam, 8.5, style: PdfFontStyle.bold);
+    final primaryBrush = PdfSolidBrush(
+      _parseHexColor(theme.primaryColor, PdfColor(30, 30, 30)),
+    );
+    final labelBrush = PdfSolidBrush(PdfColor(80, 80, 80));
+    final valueBrush = PdfSolidBrush(PdfColor(20, 20, 20));
+    final borderPen = PdfPen(
+      _parseHexColor(theme.borderColor, PdfColor(200, 200, 200)),
+      width: 0.6,
+    );
+    final accentPen = PdfPen(
+      _parseHexColor(theme.accentColor, PdfColor(21, 101, 192)),
+      width: 1.0,
+    );
+
+    final double rightX = pageWidth * 0.50;
+    final double rightWidth = pageWidth * 0.50;
+    final double valWidth = 100;
+    final double lblWidth = rightWidth - valWidth - 8;
+    double y = startY;
+
+    for (final item in summaryItems) {
+      if (item.showTopBorder) {
+        page.graphics.drawLine(
+          borderPen,
+          Offset(rightX, y - 3),
+          Offset(rightX + rightWidth, y - 3),
+        );
+      }
+
+      final itemFont = item.isEmphasized
+          ? PdfStandardFont(fontFam, 10.5, style: PdfFontStyle.bold)
+          : (item.isBold ? boldFont : regularFont);
+      final itemBrush = item.isEmphasized ? primaryBrush : valueBrush;
+
+      page.graphics.drawString(
+        item.label,
+        itemFont,
+        brush: item.isEmphasized ? primaryBrush : labelBrush,
+        bounds: Rect.fromLTWH(rightX, y, lblWidth, 14),
+        format: PdfStringFormat(alignment: PdfTextAlignment.right),
+      );
+
+      String valStr = item.value.toString();
+      if (item.value is num) {
+        final n = (item.value as num).toDouble();
+        final sym = item.currencyCode != null ? '${item.currencyCode} ' : '';
+        valStr = '$sym${NumberFormat('#,##0.00').format(n)}';
+      }
+
+      page.graphics.drawString(
+        valStr,
+        itemFont,
+        brush: itemBrush,
+        bounds: Rect.fromLTWH(rightX + lblWidth + 8, y, valWidth, 14),
+        format: PdfStringFormat(alignment: PdfTextAlignment.right),
+      );
+
+      if (item.showDoubleBottomBorder) {
+        page.graphics.drawLine(
+          accentPen,
+          Offset(rightX, y + 16),
+          Offset(rightX + rightWidth, y + 16),
+        );
+        page.graphics.drawLine(
+          accentPen,
+          Offset(rightX, y + 18.5),
+          Offset(rightX + rightWidth, y + 18.5),
+        );
+        y += 6;
+      }
+
+      y += 16;
+    }
+
+    return y + 10;
+  }
+
+  double _renderPaymentDetailsStandalone({
+    required PdfPage page,
+    required double startY,
+    required ReportPaymentDetails paymentDetails,
+    required ReportTheme theme,
+  }) {
+    final double pageWidth = page.getClientSize().width;
+    final fontFam = _toPdfFontFamily(theme.fontFamily);
+    final titleFont = PdfStandardFont(fontFam, 10, style: PdfFontStyle.bold);
+    final regularFont = PdfStandardFont(fontFam, 8.5);
+    final boldFont = PdfStandardFont(fontFam, 8.5, style: PdfFontStyle.bold);
+    final italicFont = PdfStandardFont(
+      fontFam,
+      8.0,
+      style: PdfFontStyle.italic,
+    );
+    final primaryBrush = PdfSolidBrush(
+      _parseHexColor(theme.primaryColor, PdfColor(30, 30, 30)),
+    );
+    final labelBrush = PdfSolidBrush(PdfColor(90, 90, 90));
+    final valueBrush = PdfSolidBrush(PdfColor(20, 20, 20));
+    final cardBorderPen = PdfPen(
+      _parseHexColor(theme.borderColor, PdfColor(210, 210, 210)),
+      width: 0.8,
+    );
+    final cardBgBrush = PdfSolidBrush(
+      _parseHexColor(theme.zebraLightColor, PdfColor(248, 249, 250)),
+    );
+
+    double y = startY;
+    final headerTitle =
+        paymentDetails.title ?? 'Payment & Remittance Instructions';
+
+    int fieldCount = 0;
+    if (paymentDetails.bankName != null) fieldCount++;
+    if (paymentDetails.accountName != null) fieldCount++;
+    if (paymentDetails.accountNumber != null) fieldCount++;
+    if (paymentDetails.branch != null) fieldCount++;
+    if (paymentDetails.swiftCode != null) fieldCount++;
+    final notesCount = paymentDetails.termsOrNotes.length;
+    final double cardHeight =
+        24.0 + (fieldCount * 14.0) + (notesCount * 13.0) + 12.0;
+
+    // Draw card background & border
+    page.graphics.drawRectangle(
+      pen: cardBorderPen,
+      brush: cardBgBrush,
+      bounds: Rect.fromLTWH(0, y, pageWidth, cardHeight),
+    );
+
+    // Title
+    page.graphics.drawString(
+      headerTitle,
+      titleFont,
+      brush: primaryBrush,
+      bounds: Rect.fromLTWH(10, y + 8, pageWidth - 20, 14),
+    );
+    y += 24;
+
+    void drawField(String label, String value, {bool bold = false}) {
+      page.graphics.drawString(
+        label,
+        regularFont,
+        brush: labelBrush,
+        bounds: Rect.fromLTWH(10, y, 100, 13),
+      );
+      page.graphics.drawString(
+        value,
+        bold ? boldFont : regularFont,
+        brush: valueBrush,
+        bounds: Rect.fromLTWH(115, y, pageWidth - 125, 13),
+      );
+      y += 14;
+    }
+
+    if (paymentDetails.bankName != null) {
+      drawField('Bank Name:', paymentDetails.bankName!);
+    }
+    if (paymentDetails.accountName != null) {
+      drawField('Account Name:', paymentDetails.accountName!);
+    }
+    if (paymentDetails.accountNumber != null) {
+      drawField('Account No:', paymentDetails.accountNumber!, bold: true);
+    }
+    if (paymentDetails.branch != null) {
+      drawField('Branch:', paymentDetails.branch!);
+    }
+    if (paymentDetails.swiftCode != null) {
+      drawField('SWIFT / BIC:', paymentDetails.swiftCode!);
+    }
+    for (final note in paymentDetails.termsOrNotes) {
+      page.graphics.drawString(
+        'Note: $note',
+        italicFont,
+        brush: labelBrush,
+        bounds: Rect.fromLTWH(10, y, pageWidth - 20, 13),
+      );
+      y += 13;
+    }
+
+    return startY + cardHeight + 12;
   }
 
   double _renderChartSummaryBlock({
@@ -1231,15 +1808,19 @@ class PdfReportExporter {
     return PdfFontFamily.helvetica;
   }
 
-  void _renderSignatures(
-    PdfDocument document,
-    ReportTheme theme,
-    List<ReportSignature> signatures,
-    SignatureLayout layout,
-  ) {
-    final PdfPage lastPage = document.pages[document.pages.count - 1];
-    final double pageWidth = lastPage.getClientSize().width;
-    final double pageHeight = lastPage.getClientSize().height;
+  ({PdfPage page, double bottomY}) _renderSignatures({
+    required PdfDocument document,
+    required PdfPage page,
+    required double startY,
+    required ReportTheme theme,
+    required List<ReportSignature> signatures,
+    required SignatureLayout layout,
+  }) {
+    if (signatures.isEmpty) {
+      return (page: page, bottomY: startY);
+    }
+
+    final double pageWidth = page.getClientSize().width;
 
     final titleFont = PdfStandardFont(
       PdfFontFamily.helvetica,
@@ -1260,22 +1841,32 @@ class PdfReportExporter {
 
     switch (layout) {
       case SignatureLayout.horizontal:
-        double y = pageHeight - 75;
-        if (y < 60) {
-          final newPage = document.pages.add();
-          y = newPage.getClientSize().height - 75;
+        final double neededHeight = 70.0;
+        PdfPage targetPage = page;
+        double y = math.max(
+          startY,
+          targetPage.getClientSize().height - neededHeight - 15,
+        );
+        if (startY + neededHeight > targetPage.getClientSize().height - 35) {
+          targetPage = document.pages.add();
+          y = math.max(
+            20.0,
+            targetPage.getClientSize().height - neededHeight - 20,
+          );
         }
 
+        const double sigInset = 3.0;
+        final double availWidth = pageWidth - (sigInset * 2);
         final double boxWidth =
-            (pageWidth - ((signatures.length - 1) * 16)) / signatures.length;
+            (availWidth - ((signatures.length - 1) * 16)) / signatures.length;
 
         for (int i = 0; i < signatures.length; i++) {
-          final double x = i * (boxWidth + 16);
+          final double x = sigInset + i * (boxWidth + 16);
           final sig = signatures[i];
           double curY = y;
 
           if (sig.name != null && sig.name!.isNotEmpty) {
-            lastPage.graphics.drawString(
+            targetPage.graphics.drawString(
               sig.name!,
               nameFont,
               brush: brush,
@@ -1287,14 +1878,14 @@ class PdfReportExporter {
             curY += 14;
           }
 
-          lastPage.graphics.drawLine(
+          targetPage.graphics.drawLine(
             pen,
             Offset(x, curY + 6),
             Offset(x + boxWidth, curY + 6),
           );
           curY += 10;
 
-          lastPage.graphics.drawString(
+          targetPage.graphics.drawString(
             sig.title,
             titleFont,
             brush: brush,
@@ -1304,7 +1895,7 @@ class PdfReportExporter {
           curY += 12;
 
           if (sig.date != null && sig.date!.isNotEmpty) {
-            lastPage.graphics.drawString(
+            targetPage.graphics.drawString(
               'Date: ${sig.date!}',
               dateFont,
               brush: dateBrush,
@@ -1313,62 +1904,63 @@ class PdfReportExporter {
             );
           }
         }
-        break;
+        return (page: targetPage, bottomY: y + neededHeight);
 
       case SignatureLayout.adaptive:
       case SignatureLayout.vertical:
-        // Transposed: signatures stacked vertically row-by-row
-        final double neededHeight = (signatures.length * 28.0) + 20.0;
-        double y = pageHeight - neededHeight;
-        PdfPage targetPage = lastPage;
-        if (y < 60) {
+        // Stack all signatures vertically in ONE column (no two columns)
+        final double neededHeight = (signatures.length * 48.0) + 20.0;
+        PdfPage targetPage = page;
+        double y = math.max(
+          startY,
+          targetPage.getClientSize().height - neededHeight - 15,
+        );
+        if (startY + neededHeight > targetPage.getClientSize().height - 35) {
           targetPage = document.pages.add();
-          y = targetPage.getClientSize().height - neededHeight;
+          y = math.max(
+            20.0,
+            targetPage.getClientSize().height - neededHeight - 20,
+          );
         }
 
-        for (final sig in signatures) {
-          // Title on left
-          targetPage.graphics.drawString(
-            '${sig.title}:',
-            titleFont,
-            brush: brush,
-            bounds: Rect.fromLTWH(15, y, 120, 15),
-          );
+        const double x = 15;
+        final double sigWidth = math.min(220.0, pageWidth - 30);
 
-          // Signer name or line in middle
+        for (final sig in signatures) {
+          double curY = y;
           if (sig.name != null && sig.name!.isNotEmpty) {
             targetPage.graphics.drawString(
               sig.name!,
               nameFont,
               brush: brush,
-              bounds: Rect.fromLTWH(145, y, 150, 15),
+              bounds: Rect.fromLTWH(x, curY, sigWidth, 12),
             );
+            curY += 13;
           }
           targetPage.graphics.drawLine(
             pen,
-            Offset(145, y + 14),
-            Offset(300, y + 14),
+            Offset(x, curY + 6),
+            Offset(x + sigWidth, curY + 6),
           );
-
-          // Date on right
+          curY += 10;
+          targetPage.graphics.drawString(
+            sig.title,
+            titleFont,
+            brush: brush,
+            bounds: Rect.fromLTWH(x, curY, sigWidth, 12),
+          );
+          curY += 12;
           if (sig.date != null && sig.date!.isNotEmpty) {
             targetPage.graphics.drawString(
               'Date: ${sig.date!}',
               dateFont,
               brush: dateBrush,
-              bounds: Rect.fromLTWH(320, y, 150, 15),
-            );
-          } else {
-            targetPage.graphics.drawString(
-              'Date: ____________',
-              dateFont,
-              brush: dateBrush,
-              bounds: Rect.fromLTWH(320, y, 150, 15),
+              bounds: Rect.fromLTWH(x, curY, sigWidth, 11),
             );
           }
-          y += 24;
+          y += 48.0;
         }
-        break;
+        return (page: targetPage, bottomY: y + 10);
 
       case SignatureLayout.split:
         // Split: Left side (Prepared / Date) & Right side (Checked / Approved / Authorized)
@@ -1402,17 +1994,23 @@ class PdfReportExporter {
             .max(leftSigs.length, rightSigs.length)
             .toDouble();
         final double neededHeight = (maxStack * 38.0) + 20.0;
-        double startY = pageHeight - neededHeight;
-        PdfPage targetPage = lastPage;
-        if (startY < 60) {
+        PdfPage targetPage = page;
+        double currentStartY = math.max(
+          startY,
+          targetPage.getClientSize().height - neededHeight - 15,
+        );
+        if (startY + neededHeight > targetPage.getClientSize().height - 35) {
           targetPage = document.pages.add();
-          startY = targetPage.getClientSize().height - neededHeight;
+          currentStartY = math.max(
+            20.0,
+            targetPage.getClientSize().height - neededHeight - 20,
+          );
         }
 
         final double colWidth = (pageWidth - 60) / 2;
 
         // Render left side signatures
-        double leftY = startY;
+        double leftY = currentStartY;
         for (final sig in leftSigs) {
           if (sig.name != null && sig.name!.isNotEmpty) {
             targetPage.graphics.drawString(
@@ -1449,7 +2047,7 @@ class PdfReportExporter {
         }
 
         // Render right side signatures
-        double rightY = startY;
+        double rightY = currentStartY;
         final double rightX = 15 + colWidth + 30;
         for (final sig in rightSigs) {
           if (sig.name != null && sig.name!.isNotEmpty) {
@@ -1485,7 +2083,7 @@ class PdfReportExporter {
           }
           rightY += 8;
         }
-        break;
+        return (page: targetPage, bottomY: math.max(leftY, rightY) + 10);
     }
   }
 

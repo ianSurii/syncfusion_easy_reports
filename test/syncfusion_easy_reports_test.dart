@@ -258,5 +258,152 @@ void main() {
         expect(pdf.bytes, isNotEmpty);
       },
     );
+
+    test(
+      'toTitleCase correctly formats underscore-separated keys and acronyms',
+      () {
+        expect(toTitleCase('count'), 'Count');
+        expect(toTitleCase('basic_sum'), 'Basic Sum');
+        expect(toTitleCase('net_avg'), 'Net Avg');
+        expect(toTitleCase('net_min'), 'Net Min');
+        expect(toTitleCase('net_maxs'), 'Net Maxs');
+        expect(toTitleCase('tax_vat_amount'), 'Tax VAT Amount');
+        expect(toTitleCase('user_id'), 'User ID');
+        expect(toTitleCase('total_kpi_score'), 'Total KPI Score');
+      },
+    );
+
+    test(
+      'PdfExportOptions and ReportSettings support landscape customization',
+      () {
+        final portraitOpts = PdfExportOptions(
+          orientation: 'portrait',
+          pageOrientation: PdfPageOrientation.portrait,
+        );
+        expect(portraitOpts.isLandscape, isFalse);
+        expect(portraitOpts.effectiveOrientation, PdfPageOrientation.portrait);
+
+        final landscapeOpts = PdfExportOptions(
+          pageOrientation: PdfPageOrientation.landscape,
+        );
+        expect(landscapeOpts.isLandscape, isTrue);
+        expect(
+          landscapeOpts.effectiveOrientation,
+          PdfPageOrientation.landscape,
+        );
+
+        final strLandscapeOpts = PdfExportOptions(orientation: 'landscape');
+        expect(strLandscapeOpts.isLandscape, isTrue);
+        expect(
+          strLandscapeOpts.effectiveOrientation,
+          PdfPageOrientation.landscape,
+        );
+      },
+    );
+
+    test(
+      'PaymentDetailsPosition and vertical signatures export successfully to PDF and Excel',
+      () async {
+        const payment = ReportPaymentDetails(
+          position: PaymentDetailsPosition.belowSummary,
+          bankName: 'Standard Chartered',
+          accountName: 'Antigravity Ltd',
+          accountNumber: '0108044921000',
+          termsOrNotes: ['Net 30 days'],
+        );
+
+        final summaryItems = [
+          ReportSummaryItem.subtotal(1000.0, currencyCode: 'USD'),
+          ReportSummaryItem.tax('Tax / VAT (16%)', 160.0, currencyCode: 'USD'),
+          ReportSummaryItem.total(1160.0, currencyCode: 'USD'),
+          ReportSummaryItem.balanceDue(1160.0, currencyCode: 'USD'),
+        ];
+
+        final signatures = [
+          ReportSignature(
+            title: 'Prepared By',
+            name: 'Eleanor Vance',
+            date: '2026-10-04',
+          ),
+          ReportSignature(
+            title: 'Checked By',
+            name: 'Marcus Brody',
+            date: '2026-10-04',
+          ),
+          ReportSignature(
+            title: 'Approved By',
+            name: 'Julian Hayes',
+            date: '2026-10-05',
+          ),
+          ReportSignature(
+            title: 'Authorized By',
+            name: 'Amara Okafor',
+            date: '2026-10-05',
+          ),
+        ];
+
+        // Test belowSummary position
+        final reportBelow = EasyReport.fromMaps(
+          data: sampleData,
+          title: 'Invoice Below Summary',
+          paymentDetails: payment,
+          paymentDetailsPosition: PaymentDetailsPosition.belowSummary,
+          summaryItems: summaryItems,
+          showSignatures: true,
+          signatureLayout: SignatureLayout.vertical,
+        );
+
+        final pdfBelow = await reportBelow.exportPdf(
+          options: PdfExportOptions(
+            pageOrientation: PdfPageOrientation.landscape,
+            paymentDetailsPosition: PaymentDetailsPosition.belowSummary,
+            signatureLayout: SignatureLayout.vertical,
+            signatures: signatures,
+          ),
+        );
+        expect(pdfBelow.bytes, isNotEmpty);
+
+        final excelBelow = await reportBelow.exportExcel(
+          options: ExcelExportOptions(
+            paymentDetailsPosition: PaymentDetailsPosition.belowSummary,
+            signatureLayout: SignatureLayout.vertical,
+            signatures: signatures,
+          ),
+        );
+        expect(excelBelow.bytes, isNotEmpty);
+
+        // Test afterSignatures position
+        final reportAfter = EasyReport.fromMaps(
+          data: sampleData,
+          title: 'Invoice After Signatures',
+          paymentDetails: payment.copyWith(
+            position: PaymentDetailsPosition.afterSignatures,
+          ),
+          paymentDetailsPosition: PaymentDetailsPosition.afterSignatures,
+          summaryItems: summaryItems,
+          showSignatures: true,
+          signatureLayout: SignatureLayout.vertical,
+        );
+
+        final pdfAfter = await reportAfter.exportPdf(
+          options: PdfExportOptions(
+            pageOrientation: PdfPageOrientation.portrait,
+            paymentDetailsPosition: PaymentDetailsPosition.afterSignatures,
+            signatureLayout: SignatureLayout.vertical,
+            signatures: signatures,
+          ),
+        );
+        expect(pdfAfter.bytes, isNotEmpty);
+
+        final excelAfter = await reportAfter.exportExcel(
+          options: ExcelExportOptions(
+            paymentDetailsPosition: PaymentDetailsPosition.afterSignatures,
+            signatureLayout: SignatureLayout.vertical,
+            signatures: signatures,
+          ),
+        );
+        expect(excelAfter.bytes, isNotEmpty);
+      },
+    );
   });
 }

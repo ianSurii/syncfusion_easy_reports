@@ -1,3 +1,5 @@
+import 'package:syncfusion_flutter_pdf/pdf.dart' show PdfPageOrientation;
+
 /// Section rendering orientation
 enum ReportSectionOrientation {
   /// Renders data as a standard column-based grid table (left-to-right)
@@ -237,6 +239,7 @@ class ReportSection {
 class ReportSettings {
   final String pageSize; // 'A4', 'A5', 'Letter', 'Legal'
   final String orientation; // 'portrait', 'landscape'
+  final PdfPageOrientation? pageOrientation;
   final double margin;
   final String? userPassword; // For viewing reports
   final String? ownerPassword; // For editing security rules
@@ -244,6 +247,7 @@ class ReportSettings {
   ReportSettings({
     this.pageSize = 'A4',
     this.orientation = 'portrait',
+    this.pageOrientation,
     this.margin = 10.0,
     this.userPassword,
     this.ownerPassword,
@@ -391,6 +395,18 @@ class ReportSummaryItem {
       );
 }
 
+/// Layout position options for bank remittance / payment instructions relative to financial summaries and signatures.
+enum PaymentDetailsPosition {
+  /// Side by side with financial summary items (payment instructions on left, totals on right).
+  sideBySide,
+
+  /// Full-width block rendered directly after / below the financial summary totals (Subtotal, Tax, Total, Balance Due).
+  belowSummary,
+
+  /// Full-width block rendered after / below the signatures block at the bottom of the document.
+  afterSignatures,
+}
+
 /// Bank remittance, wire payment details, and terms/notes displayed at the bottom of reports
 class ReportPaymentDetails {
   final String? bankName;
@@ -400,6 +416,8 @@ class ReportPaymentDetails {
   final String? swiftCode;
   final String? iban;
   final List<String> termsOrNotes;
+  final String? title;
+  final PaymentDetailsPosition position;
 
   const ReportPaymentDetails({
     this.bankName,
@@ -409,7 +427,33 @@ class ReportPaymentDetails {
     this.swiftCode,
     this.iban,
     this.termsOrNotes = const [],
+    this.title,
+    this.position = PaymentDetailsPosition.sideBySide,
   });
+
+  ReportPaymentDetails copyWith({
+    String? bankName,
+    String? accountName,
+    String? accountNumber,
+    String? branch,
+    String? swiftCode,
+    String? iban,
+    List<String>? termsOrNotes,
+    String? title,
+    PaymentDetailsPosition? position,
+  }) {
+    return ReportPaymentDetails(
+      bankName: bankName ?? this.bankName,
+      accountName: accountName ?? this.accountName,
+      accountNumber: accountNumber ?? this.accountNumber,
+      branch: branch ?? this.branch,
+      swiftCode: swiftCode ?? this.swiftCode,
+      iban: iban ?? this.iban,
+      termsOrNotes: termsOrNotes ?? this.termsOrNotes,
+      title: title ?? this.title,
+      position: position ?? this.position,
+    );
+  }
 }
 
 /// Represents an individual signature block with optional pre-filled signer name, designation, and date.

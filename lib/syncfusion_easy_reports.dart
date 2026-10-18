@@ -24,3 +24,9 @@ export 'src/saver/report_saver.dart';
 
 // Export Template & Import Services
 export 'src/services/excel_template_service.dart';
+
+// Export Utilities
+export 'src/utils/text_utils.dart';
+
+// Re-export PDF orientation for convenient report styling
+export 'package:syncfusion_flutter_pdf/pdf.dart' show PdfPageOrientation;

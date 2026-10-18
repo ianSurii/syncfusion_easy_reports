@@ -8,6 +8,7 @@ import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 
 import '../downloader/downloader.dart';
 import '../models/report_models.dart';
+import '../utils/text_utils.dart';
 
 /// Service to generate professional Excel reports from [ReportData].
 class ExcelReportGenerator {
@@ -729,7 +730,7 @@ class ExcelReportGenerator {
     // Key value statistics
     for (final entry in data.entries) {
       final Range keyCell = sheet.getRangeByIndex(currentRow, 1);
-      keyCell.setText(entry.key);
+      keyCell.setText(toTitleCase(entry.key));
       keyCell.cellStyle.bold = true;
 
       final Range valCell = sheet.getRangeByIndex(currentRow, 2);

@@ -709,6 +709,124 @@ void main() {
     );
 
     test(
+      'Multi-column groupBy creates dedicated sheets for each combination and renders signatures on every sheet',
+      () async {
+        final multiGroupData = [
+          {
+            'dept': 'Engineering',
+            'location': 'Nairobi',
+            'emp': 'Alice',
+            'cost': 5000.0,
+          },
+          {
+            'dept': 'Engineering',
+            'location': 'Mombasa',
+            'emp': 'Bob',
+            'cost': 4500.0,
+          },
+          {
+            'dept': 'Sales',
+            'location': 'Nairobi',
+            'emp': 'Charlie',
+            'cost': 3000.0,
+          },
+          {
+            'dept': 'Sales',
+            'location': 'Kisumu',
+            'emp': 'David',
+            'cost': 3500.0,
+          },
+        ];
+
+        final definition = ReportDefinition<Map<String, dynamic>>(
+          title: 'Regional Operations Audit',
+          columns: [
+            ReportColumn.text(
+              id: 'emp',
+              title: 'Employee',
+              value: (m) => m['emp'],
+            ),
+            ReportColumn.text(
+              id: 'dept',
+              title: 'Department',
+              value: (m) => m['dept'],
+            ),
+            ReportColumn.text(
+              id: 'location',
+              title: 'Location',
+              value: (m) => m['location'],
+            ),
+            ReportColumn.money(
+              id: 'cost',
+              title: 'Cost',
+              value: (m) => m['cost'],
+            ),
+          ],
+          analyses: [
+            ReportAnalysis.grouped(
+              id: 'multi_group_audit',
+              title: 'Multi-Group Audit',
+              groupBy: ['dept', 'location'],
+              sheetPerCategory: true,
+              measures: [ReportMeasure.sum(column: 'cost')],
+            ),
+          ],
+        );
+
+        final prepared = await engine.prepare(
+          definition: definition,
+          records: multiGroupData,
+        );
+
+        final analysis = prepared.analyses.first;
+        expect(analysis.categorySheets, isNotNull);
+        expect(analysis.categorySheets!.length, 4);
+
+        final labels = analysis.categorySheets!
+            .map((s) => s.categoryLabel)
+            .toList();
+        expect(
+          labels,
+          containsAll([
+            'Engineering - Nairobi',
+            'Engineering - Mombasa',
+            'Sales - Nairobi',
+            'Sales - Kisumu',
+          ]),
+        );
+
+        for (final sheet in analysis.categorySheets!) {
+          expect(sheet.rows.length, 1);
+          expect(sheet.totalsRow, isNotNull);
+        }
+
+        // Verify PDF and Excel export with signatures enabled
+        const opts = PdfExportOptions(
+          showSignatures: true,
+          signatures: [
+            ReportSignature(title: 'Auditor'),
+            ReportSignature(title: 'Director'),
+          ],
+        );
+        final pdfArtifact = await engine.exportPdf(prepared, options: opts);
+        expect(pdfArtifact.bytes, isNotEmpty);
+
+        const xlsOpts = ExcelExportOptions(
+          showSignatures: true,
+          signatures: [
+            ReportSignature(title: 'Auditor'),
+            ReportSignature(title: 'Director'),
+          ],
+        );
+        final xlsArtifact = await engine.exportExcel(
+          prepared,
+          options: xlsOpts,
+        );
+        expect(xlsArtifact.bytes, isNotEmpty);
+      },
+    );
+
+    test(
       'Dynamic definition with multi-sheet category and cross-tab analysis',
       () async {
         final sampleDeductions = [

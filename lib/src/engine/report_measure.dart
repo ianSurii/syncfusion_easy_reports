@@ -1,3 +1,5 @@
+import '../utils/text_utils.dart';
+
 /// Types of calculations performed on report data.
 enum ReportMeasureType {
   /// Counts all records in the group.
@@ -127,7 +129,7 @@ class ReportMeasure {
   }) {
     return ReportMeasure(
       id: id ?? '${column}_sum',
-      title: title ?? 'Total $column',
+      title: title ?? 'Total ${toTitleCase(column)}',
       type: ReportMeasureType.sum,
       column: column,
       currencyCode: currencyCode,
@@ -145,7 +147,7 @@ class ReportMeasure {
   }) {
     return ReportMeasure(
       id: id ?? '${column}_avg',
-      title: title ?? 'Average $column',
+      title: title ?? 'Average ${toTitleCase(column)}',
       type: ReportMeasureType.average,
       column: column,
       currencyCode: currencyCode,
@@ -163,7 +165,7 @@ class ReportMeasure {
   }) {
     return ReportMeasure(
       id: id ?? '${column}_weighted_avg',
-      title: title ?? 'Weighted Avg $column',
+      title: title ?? 'Weighted Avg ${toTitleCase(column)}',
       type: ReportMeasureType.weightedAverage,
       column: column,
       weightedBy: weightedBy,
@@ -182,7 +184,7 @@ class ReportMeasure {
   }) {
     return ReportMeasure(
       id: id ?? '${column}_min',
-      title: title ?? 'Min $column',
+      title: title ?? 'Min ${toTitleCase(column)}',
       type: ReportMeasureType.min,
       column: column,
       currencyCode: currencyCode,
@@ -200,7 +202,7 @@ class ReportMeasure {
   }) {
     return ReportMeasure(
       id: id ?? '${column}_max',
-      title: title ?? 'Max $column',
+      title: title ?? 'Max ${toTitleCase(column)}',
       type: ReportMeasureType.max,
       column: column,
       currencyCode: currencyCode,
@@ -217,7 +219,7 @@ class ReportMeasure {
   }) {
     return ReportMeasure(
       id: id ?? '${column}_pct',
-      title: title ?? '% of Total $column',
+      title: title ?? '% of Total ${toTitleCase(column)}',
       type: ReportMeasureType.percentageOfTotal,
       column: column,
       precision: precision,

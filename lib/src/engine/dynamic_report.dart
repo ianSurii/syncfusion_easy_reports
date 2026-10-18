@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:syncfusion_flutter_pdf/pdf.dart' show PdfPageOrientation;
 import '../models/report_models.dart';
 import 'report_definition.dart';
 import 'report_column.dart';
@@ -9,6 +10,7 @@ import 'report_artifact.dart';
 import 'prepared_report.dart';
 import 'report_engine.dart';
 import '../saver/report_saver.dart';
+import '../utils/text_utils.dart';
 
 /// A super-dynamic, unified reporting engine that generates multi-sheet Excel
 /// workbooks and paginated PDF documents from any dataset with zero boilerplate.
@@ -74,10 +76,12 @@ class EasyReport {
     TableBorderStyle tableBorderStyle = TableBorderStyle.clean,
     bool showGridlines = true,
     String pdfOrientation = 'portrait',
+    PdfPageOrientation? pdfPageOrientation,
 
     // Financial Summaries & Payment Info
     List<ReportSummaryItem>? summaryItems,
     ReportPaymentDetails? paymentDetails,
+    PaymentDetailsPosition? paymentDetailsPosition,
 
     // Signatures & Document Options
     bool showSignatures = false,
@@ -127,8 +131,10 @@ class EasyReport {
       tableBorderStyle: tableBorderStyle,
       showGridlines: showGridlines,
       pdfOrientation: pdfOrientation,
+      pdfPageOrientation: pdfPageOrientation,
       summaryItems: summaryItems,
       paymentDetails: paymentDetails,
+      paymentDetailsPosition: paymentDetailsPosition,
       showSignatures: showSignatures,
       signatures: signatures,
       signatureBlocks: signatureBlocks,
@@ -186,10 +192,12 @@ class EasyReport {
     TableBorderStyle tableBorderStyle = TableBorderStyle.clean,
     bool showGridlines = true,
     String pdfOrientation = 'portrait',
+    PdfPageOrientation? pdfPageOrientation,
 
     // Financial Summaries & Payment Info
     List<ReportSummaryItem>? summaryItems,
     ReportPaymentDetails? paymentDetails,
+    PaymentDetailsPosition? paymentDetailsPosition,
 
     // Signatures & Document Options
     bool showSignatures = false,
@@ -224,7 +232,7 @@ class EasyReport {
 
     for (final key in activeKeys) {
       final customType = columnTypes?[key];
-      final colTitle = columnTitles?[key] ?? _beautifyTitle(key);
+      final colTitle = columnTitles?[key] ?? toTitleCase(key);
 
       if (customType != null) {
         columns.add(
@@ -344,7 +352,7 @@ class EasyReport {
 
     // Analysis B: Grouped Aggregation & Category Sheets
     if (includeGroupedSummary && groupByList.isNotEmpty) {
-      final groupTitles = groupByList.map((g) => _beautifyTitle(g)).join(' & ');
+      final groupTitles = groupByList.map((g) => toTitleCase(g)).join(' & ');
       final effectiveChart = includeChart
           ? (chartConfig ??
                 ReportChartConfig(
@@ -412,12 +420,12 @@ class EasyReport {
       analyses.add(
         ReportAnalysis.crossTab(
           id: 'crosstab_matrix',
-          title: '${_beautifyTitle(rDim)} by ${_beautifyTitle(cDim)} Matrix',
+          title: '${toTitleCase(rDim)} by ${toTitleCase(cDim)} Matrix',
           rowDimension: rDim,
           columnDimension: cDim,
           measure: ReportMeasure.sum(
             column: mKey,
-            title: _beautifyTitle(mKey),
+            title: toTitleCase(mKey),
             currencyCode:
                 columns.any(
                   (c) => c.id == mKey && c.type == ReportFieldType.money,
@@ -462,12 +470,14 @@ class EasyReport {
           showGridlines: showGridlines,
           summaryItems: summaryItems,
           paymentDetails: paymentDetails,
+          paymentDetailsPosition: paymentDetailsPosition,
         );
 
     final resolvedPdfOpts =
         pdfOptions ??
         PdfExportOptions(
           orientation: pdfOrientation,
+          pageOrientation: pdfPageOrientation,
           showPageNumbers: true,
           repeatHeaders: true,
           showSignatures: showSignatures,
@@ -477,6 +487,7 @@ class EasyReport {
           tableBorderStyle: tableBorderStyle,
           summaryItems: summaryItems,
           paymentDetails: paymentDetails,
+          paymentDetailsPosition: paymentDetailsPosition,
         );
 
     return ReportDefinition<Map<String, dynamic>>(
@@ -731,27 +742,5 @@ class EasyReport {
     if (val is DateTime) return val;
     if (val is String) return DateTime.tryParse(val);
     return null;
-  }
-
-  static String _beautifyTitle(String key) {
-    // Convert camelCase or snake_case or kebab-case to Title Case
-    final withSpaces = key
-        .replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ${m[1]}')
-        .replaceAll('_', ' ')
-        .replaceAll('-', ' ')
-        .trim();
-
-    final words = withSpaces.split(RegExp(r'\s+'));
-    return words
-        .map((w) {
-          if (w.isEmpty) return '';
-          if (w.toLowerCase() == 'id') return 'ID';
-          if (w.toLowerCase() == 'sku') return 'SKU';
-          if (w.toLowerCase() == 'kpi') return 'KPI';
-          if (w.toLowerCase() == 'ar') return 'AR';
-          if (w.toLowerCase() == 'ap') return 'AP';
-          return w[0].toUpperCase() + w.substring(1);
-        })
-        .join(' ');
   }
 }

@@ -12,6 +12,7 @@ import 'prepared_report.dart';
 import 'report_definition.dart';
 import '../generators/excel_exporter.dart';
 import '../generators/pdf_exporter.dart';
+import '../utils/text_utils.dart';
 
 /// The core calculation and aggregation engine for [syncfusion_easy_reports].
 ///
@@ -147,7 +148,13 @@ class ReportEngine {
       subtitle: definition.subtitle,
       branding: definition.branding,
       theme: definition.theme ?? ReportTheme.classicBlue(),
-      settings: definition.settings ?? ReportSettings(),
+      settings:
+          definition.settings ??
+          ReportSettings(
+            pageSize: definition.pdfOptions?.pageSize ?? 'A4',
+            orientation: definition.pdfOptions?.orientation ?? 'portrait',
+            pageOrientation: definition.pdfOptions?.pageOrientation,
+          ),
       analyses: preparedAnalyses,
       totalRecordCount: records.length,
       filteredRecordCount: maxFilteredRecords,
@@ -770,10 +777,16 @@ class ReportEngine {
       );
     }
 
-    final combinedMetrics = <String, dynamic>{
-      ...metricValues,
-      ...(analysis.customData ?? {}),
-    };
+    final combinedMetrics = <String, dynamic>{};
+    for (final m in analysis.measures) {
+      final key = m.title.isNotEmpty ? m.title : toTitleCase(m.id);
+      combinedMetrics[toTitleCase(key)] = metricValues[m.id];
+    }
+    if (analysis.customData != null) {
+      analysis.customData!.forEach((k, v) {
+        combinedMetrics[toTitleCase(k)] = v;
+      });
+    }
 
     return PreparedAnalysis(
       id: analysis.id,
@@ -1285,7 +1298,14 @@ class ReportEngine {
               .toList()
         : summaryHeaders;
 
-    for (final g in groups) {
+    final List<({String label, String key, PreparedGroup group})> leafGroups =
+        [];
+    _collectLeafCategoryGroups(groups, '', '', leafGroups);
+
+    for (final item in leafGroups) {
+      final g = item.group;
+      final categoryLabel = item.label;
+      final categoryKey = item.key;
       final List<PreparedRow> sheetRows = [];
       final Map<String, num> colSums = {};
 
@@ -1310,7 +1330,12 @@ class ReportEngine {
         for (int i = 0; i < summaryHeaders.length; i++) {
           final h = summaryHeaders[i];
           if (i == 0) {
-            cells.add(PreparedCell(rawValue: g.label, formattedText: g.label));
+            cells.add(
+              PreparedCell(
+                rawValue: categoryLabel,
+                formattedText: categoryLabel,
+              ),
+            );
           } else {
             final val = g.measureValues[h.id];
             cells.add(_formatMeasureCell(val, h));
@@ -1328,8 +1353,8 @@ class ReportEngine {
             if (i == 0) {
               totalCells.add(
                 PreparedCell(
-                  rawValue: '${g.label} Total',
-                  formattedText: '${g.label} Total',
+                  rawValue: '$categoryLabel Total',
+                  formattedText: '$categoryLabel Total',
                   type: PreparedCellType.text,
                   alignment: ReportColumnAlignment.left,
                 ),
@@ -1353,8 +1378,8 @@ class ReportEngine {
             if (i == 0) {
               totalCells.add(
                 PreparedCell(
-                  rawValue: '${g.label} Total',
-                  formattedText: '${g.label} Total',
+                  rawValue: '$categoryLabel Total',
+                  formattedText: '$categoryLabel Total',
                 ),
               );
             } else {
@@ -1366,12 +1391,12 @@ class ReportEngine {
         totalsRow = PreparedRow(cells: totalCells, isGrandTotal: true);
       }
 
-      final cleanSheetName = _sanitizeSheetName(g.label);
+      final cleanSheetName = _sanitizeSheetName(categoryLabel);
 
       sheets.add(
         PreparedCategorySheet(
-          categoryKey: g.key,
-          categoryLabel: g.label,
+          categoryKey: categoryKey,
+          categoryLabel: categoryLabel,
           sheetName: cleanSheetName,
           headers: catHeaders,
           rows: sheetRows,
@@ -1381,6 +1406,30 @@ class ReportEngine {
     }
 
     return sheets;
+  }
+
+  void _collectLeafCategoryGroups(
+    List<PreparedGroup> groups,
+    String prefixLabel,
+    String prefixKey,
+    List<({String label, String key, PreparedGroup group})> result,
+  ) {
+    for (final g in groups) {
+      final currentLabel = prefixLabel.isEmpty
+          ? g.label
+          : '$prefixLabel - ${g.label}';
+      final currentKey = prefixKey.isEmpty ? g.key : '$prefixKey/${g.key}';
+      if (g.subGroups.isNotEmpty) {
+        _collectLeafCategoryGroups(
+          g.subGroups,
+          currentLabel,
+          currentKey,
+          result,
+        );
+      } else {
+        result.add((label: currentLabel, key: currentKey, group: g));
+      }
+    }
   }
 
   // =========================================================================
