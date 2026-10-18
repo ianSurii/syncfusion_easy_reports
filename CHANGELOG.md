@@ -1,3 +1,9 @@
+## 0.0.2
+
+* Added configurable payment and remittance instructions, financial summary placement, and signature layouts for PDF and Excel exports.
+* Expanded report configuration with page orientation, report charts, and richer model-driven analysis options.
+* Improved category-sheet generation and report labels, and expanded the interactive example and web demo.
+
 ## 0.0.1
 
 * Initial release of `syncfusion_easy_reports` with complete model-driven and table-based reporting architecture.
