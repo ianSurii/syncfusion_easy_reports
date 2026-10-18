@@ -22,4 +22,5 @@ example/build/
 /coverage/
 /old/
 /old/*
+/doc/
 docs/
