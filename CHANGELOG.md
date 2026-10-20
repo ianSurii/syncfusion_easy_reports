@@ -1,3 +1,9 @@
+## 0.0.3
+
+* Added Linux desktop and web support, with CI builds for both targets.
+* Updated Syncfusion PDF and Excel dependencies and tightened lower-bound compatibility.
+* Preserved logo aspect ratios in PDF and Excel reports, and moved example logos above company details.
+
 ## 0.0.2
 
 * Added configurable payment and remittance instructions, financial summary placement, and signature layouts for PDF and Excel exports.
