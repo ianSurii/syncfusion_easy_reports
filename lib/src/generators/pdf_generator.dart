@@ -10,6 +10,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../downloader/downloader.dart';
 import '../models/report_models.dart';
+import '../utils/image_geometry.dart';
 
 /// Service to generate professional PDF reports from [ReportData].
 class PdfReportGenerator {
@@ -531,6 +532,14 @@ class PdfReportGenerator {
         _log.warning('Failed to render logo bitmap in PDF: $e');
       }
     }
+    final logoSize = logoImage == null
+        ? (width: logoW, height: logoH)
+        : fitImageWithinBounds(
+            imageWidth: logoImage.width.toDouble(),
+            imageHeight: logoImage.height.toDouble(),
+            maxWidth: logoW,
+            maxHeight: logoH,
+          );
 
     double templateHeight = 75;
     if (hasLogo && branding.layout == BrandingLayout.stacked) {
@@ -563,7 +572,12 @@ class PdfReportGenerator {
         if (logoImage != null) {
           header.graphics.drawImage(
             logoImage,
-            Rect.fromLTWH(0, y, logoW, logoH),
+            Rect.fromLTWH(
+              (logoW - logoSize.width) / 2,
+              y + (logoH - logoSize.height) / 2,
+              logoSize.width,
+              logoSize.height,
+            ),
           );
           y += logoH + 6;
         }
@@ -603,7 +617,12 @@ class PdfReportGenerator {
         if (logoImage != null) {
           header.graphics.drawImage(
             logoImage,
-            Rect.fromLTWH(0, 0, logoW, logoH),
+            Rect.fromLTWH(
+              (logoW - logoSize.width) / 2,
+              (logoH - logoSize.height) / 2,
+              logoSize.width,
+              logoSize.height,
+            ),
           );
           textX = logoW + 15;
         }
@@ -646,7 +665,12 @@ class PdfReportGenerator {
         if (logoImage != null) {
           header.graphics.drawImage(
             logoImage,
-            Rect.fromLTWH(width - logoW, 0, logoW, logoH),
+            Rect.fromLTWH(
+              width - logoW + (logoW - logoSize.width) / 2,
+              (logoH - logoSize.height) / 2,
+              logoSize.width,
+              logoSize.height,
+            ),
           );
         }
         double y = 0;

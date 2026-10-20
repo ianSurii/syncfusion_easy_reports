@@ -1,8 +1,29 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:syncfusion_easy_reports/syncfusion_easy_reports.dart';
+import 'package:syncfusion_easy_reports/src/utils/image_geometry.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('fitImageWithinBounds preserves logo aspect ratio', () {
+    final squareLogo = fitImageWithinBounds(
+      imageWidth: 512,
+      imageHeight: 512,
+      maxWidth: 90,
+      maxHeight: 45,
+    );
+    final wideLogo = fitImageWithinBounds(
+      imageWidth: 300,
+      imageHeight: 100,
+      maxWidth: 90,
+      maxHeight: 45,
+    );
+
+    expect(squareLogo.width, 45);
+    expect(squareLogo.height, 45);
+    expect(wideLogo.width, 90);
+    expect(wideLogo.height, 30);
+  });
 
   group('Report Configuration & Theme Tests', () {
     test('ReportBranding should correctly construct and clone with bytes', () {

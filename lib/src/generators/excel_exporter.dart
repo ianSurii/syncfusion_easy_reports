@@ -12,6 +12,7 @@ import '../engine/report_options.dart';
 import '../engine/report_artifact.dart';
 import '../engine/report_column.dart';
 import '../models/report_models.dart';
+import '../utils/image_geometry.dart';
 import '../utils/text_utils.dart';
 import 'report_chart_data.dart';
 
@@ -802,8 +803,7 @@ class ExcelReportExporter {
             1,
             branding.logoBytes!,
           );
-          picture.height = logoHeight.toInt();
-          picture.width = logoWidth.toInt();
+          _fitPictureWithinBounds(picture, logoWidth, logoHeight);
         } catch (e) {
           _log.warning('Excel picture render exception: $e');
         }
@@ -849,8 +849,7 @@ class ExcelReportExporter {
             1,
             branding.logoBytes!,
           );
-          picture.height = logoHeight.toInt();
-          picture.width = logoWidth.toInt();
+          _fitPictureWithinBounds(picture, logoWidth, logoHeight);
         } catch (e) {
           _log.warning('Excel picture render exception: $e');
         }
@@ -936,8 +935,7 @@ class ExcelReportExporter {
             rightCol,
             branding.logoBytes!,
           );
-          picture.height = logoHeight.toInt();
-          picture.width = logoWidth.toInt();
+          _fitPictureWithinBounds(picture, logoWidth, logoHeight);
         } catch (e) {
           _log.warning('Excel picture render exception: $e');
         }
@@ -945,6 +943,21 @@ class ExcelReportExporter {
         final maxSpan = math.max(logoRows, textRows);
         return startRow + maxSpan + 1;
     }
+  }
+
+  void _fitPictureWithinBounds(
+    Picture picture,
+    double maxWidth,
+    double maxHeight,
+  ) {
+    final size = fitImageWithinBounds(
+      imageWidth: picture.width.toDouble(),
+      imageHeight: picture.height.toDouble(),
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
+    );
+    picture.width = size.width.round();
+    picture.height = size.height.round();
   }
 
   int _renderSummaryCards(

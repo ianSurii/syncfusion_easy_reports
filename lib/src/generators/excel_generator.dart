@@ -8,6 +8,7 @@ import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 
 import '../downloader/downloader.dart';
 import '../models/report_models.dart';
+import '../utils/image_geometry.dart';
 import '../utils/text_utils.dart';
 
 /// Service to generate professional Excel reports from [ReportData].
@@ -265,8 +266,7 @@ class ExcelReportGenerator {
             1,
             branding.logoBytes!,
           );
-          picture.height = logoHeight.toInt();
-          picture.width = logoWidth.toInt();
+          _fitPictureWithinBounds(picture, logoWidth, logoHeight);
         } catch (e) {
           _log.warning('Failed to render logo picture in Excel: $e');
         }
@@ -333,8 +333,7 @@ class ExcelReportGenerator {
             1,
             branding.logoBytes!,
           );
-          picture.height = logoHeight.toInt();
-          picture.width = logoWidth.toInt();
+          _fitPictureWithinBounds(picture, logoWidth, logoHeight);
         } catch (e) {
           _log.warning('Failed to render logo picture in Excel: $e');
         }
@@ -435,8 +434,7 @@ class ExcelReportGenerator {
             rightCol,
             branding.logoBytes!,
           );
-          picture.height = logoHeight.toInt();
-          picture.width = logoWidth.toInt();
+          _fitPictureWithinBounds(picture, logoWidth, logoHeight);
         } catch (e) {
           _log.warning('Failed to render logo picture in Excel: $e');
         }
@@ -465,6 +463,21 @@ class ExcelReportGenerator {
         }
         return nextRow + 1;
     }
+  }
+
+  void _fitPictureWithinBounds(
+    Picture picture,
+    double maxWidth,
+    double maxHeight,
+  ) {
+    final size = fitImageWithinBounds(
+      imageWidth: picture.width.toDouble(),
+      imageHeight: picture.height.toDouble(),
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
+    );
+    picture.width = size.width.round();
+    picture.height = size.height.round();
   }
 
   // =========================================================================

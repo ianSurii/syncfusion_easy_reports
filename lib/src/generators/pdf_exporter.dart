@@ -15,6 +15,7 @@ import '../engine/report_artifact.dart';
 import '../engine/report_column.dart';
 import '../models/report_models.dart';
 import '../utils/text_utils.dart';
+import '../utils/image_geometry.dart';
 import 'report_chart_data.dart';
 
 /// Renders a [PreparedReport] into an Adobe PDF (.pdf) document.
@@ -224,6 +225,14 @@ class PdfReportExporter {
         _log.warning('Failed to render logo bitmap in PDF: $e');
       }
     }
+    final logoSize = logoImage == null
+        ? (width: logoW, height: logoH)
+        : fitImageWithinBounds(
+            imageWidth: logoImage.width.toDouble(),
+            imageHeight: logoImage.height.toDouble(),
+            maxWidth: logoW,
+            maxHeight: logoH,
+          );
 
     double templateHeight = 50;
     if (hasLogo && branding.layout == BrandingLayout.stacked) {
@@ -254,7 +263,12 @@ class PdfReportExporter {
         if (logoImage != null) {
           headerTemplate.graphics.drawImage(
             logoImage,
-            Rect.fromLTWH(15, y, logoW, logoH),
+            Rect.fromLTWH(
+              15 + (logoW - logoSize.width) / 2,
+              y + (logoH - logoSize.height) / 2,
+              logoSize.width,
+              logoSize.height,
+            ),
           );
           y += logoH + 5;
         }
@@ -299,7 +313,12 @@ class PdfReportExporter {
         if (logoImage != null) {
           headerTemplate.graphics.drawImage(
             logoImage,
-            Rect.fromLTWH(15, 5, logoW, logoH),
+            Rect.fromLTWH(
+              15 + (logoW - logoSize.width) / 2,
+              5 + (logoH - logoSize.height) / 2,
+              logoSize.width,
+              logoSize.height,
+            ),
           );
           textX = 15 + logoW + 12;
         }
@@ -345,7 +364,12 @@ class PdfReportExporter {
         if (logoImage != null) {
           headerTemplate.graphics.drawImage(
             logoImage,
-            Rect.fromLTWH(width - 15 - logoW, 5, logoW, logoH),
+            Rect.fromLTWH(
+              width - 15 - logoW + (logoW - logoSize.width) / 2,
+              5 + (logoH - logoSize.height) / 2,
+              logoSize.width,
+              logoSize.height,
+            ),
           );
         }
         double y = 5;
