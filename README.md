@@ -38,6 +38,10 @@
 > - **Excel:** Targets modern `.xlsx` workbooks via Syncfusion Flutter XlsIO. Legacy `.xls` and macro `.xlsm` files are out of scope.
 > - **PDF:** Standard business PDF and password-protected PDF. **PDF/A archival and encryption are mutually exclusive** per ISO specification.
 
+## Supported Platforms
+
+Report generation supports Android, iOS, Linux, macOS, web, and Windows. Reports download in the browser on web and use native save or share flows on desktop and mobile.
+
 ---
 
 ## Installation

@@ -396,7 +396,6 @@ class _ShowcaseHomePageState extends State<ShowcaseHomePage> {
           email: 'billing@apexinnovations.com',
           taxId: 'US-EIN-98-7654321',
           logoPath: 'assets/logo.png',
-          layout: BrandingLayout.topRightLogo,
         );
       case ReportUseCase.payroll:
         return ReportBranding(
@@ -406,7 +405,6 @@ class _ShowcaseHomePageState extends State<ShowcaseHomePage> {
           email: 'payroll@acme-corp.internal',
           taxId: 'US-EIN-54-3210987',
           logoPath: 'assets/logo.png',
-          layout: BrandingLayout.topRightLogo,
         );
       case ReportUseCase.salesCrossTab:
         return ReportBranding(
@@ -416,7 +414,6 @@ class _ShowcaseHomePageState extends State<ShowcaseHomePage> {
           email: 'finance@globalstrategic.com',
           taxId: 'US-EIN-12-3456789',
           logoPath: 'assets/logo.png',
-          layout: BrandingLayout.topRightLogo,
         );
       case ReportUseCase.agingValuation:
         return ReportBranding(
@@ -426,7 +423,6 @@ class _ShowcaseHomePageState extends State<ShowcaseHomePage> {
           email: 'ar-risk@summitfinancial.com',
           taxId: 'US-EIN-88-1122334',
           logoPath: 'assets/logo.png',
-          layout: BrandingLayout.topRightLogo,
         );
       case ReportUseCase.clinicalAudit:
         return ReportBranding(
@@ -436,7 +432,6 @@ class _ShowcaseHomePageState extends State<ShowcaseHomePage> {
           email: 'audit@stjudehealth.org',
           taxId: 'US-EIN-77-9988776',
           logoPath: 'assets/logo.png',
-          layout: BrandingLayout.topRightLogo,
         );
     }
   }

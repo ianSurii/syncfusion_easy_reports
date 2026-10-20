@@ -39,3 +39,50 @@ jobs:
 
       - name: Run example widget tests
         run: cd example && flutter test
+
+  platform-builds:
+    name: Linux and Web Builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: Install example dependencies
+        run: cd example && flutter pub get
+
+      - name: Build Linux example
+        run: cd example && flutter build linux --debug
+
+      - name: Build web example
+        run: cd example && flutter build web --debug
+
+  lower-bound-analysis:
+    name: Dependency Lower Bounds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Resolve lower-bound dependencies
+        run: flutter pub downgrade
+
+      - name: Test lower-bound dependencies
+        run: flutter test
+
+      - name: Analyze lower-bound dependencies
+        run: flutter analyze
