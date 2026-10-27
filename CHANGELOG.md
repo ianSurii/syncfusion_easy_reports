@@ -1,3 +1,9 @@
+## 0.0.4
+
+* Upgraded dependencies: `syncfusion_flutter_pdf` and `syncfusion_flutter_xlsio` to `^35.1.42`, `excel_plus` to `^2.29.1`, and `file_picker` to `^13.3.0`.
+* Updated transitive packages including `android_file_picker`, `file_picker_darwin`, `permission_handler_apple`, `syncfusion_flutter_core`, `syncfusion_officecore`, and `posix`.
+* Fixed PDF exporter footer timestamp to respect `report.generatedAt` when supplied instead of defaulting strictly to system time.
+
 ## 0.0.3
 
 * Added Linux desktop and web support, with CI builds for both targets.

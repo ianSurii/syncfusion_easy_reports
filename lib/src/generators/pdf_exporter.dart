@@ -106,7 +106,7 @@ class PdfReportExporter {
 
     // 5. Configure Header & Footer templates
     _addHeaderTemplate(document, branding, theme, report.title);
-    _addFooterTemplate(document, theme, opts);
+    _addFooterTemplate(document, theme, opts, report.generatedAt);
 
     // 6. Render analyses / sections
     for (int i = 0; i < report.analyses.length; i++) {
@@ -418,8 +418,9 @@ class PdfReportExporter {
   void _addFooterTemplate(
     PdfDocument document,
     ReportTheme theme,
-    PdfExportOptions options,
-  ) {
+    PdfExportOptions options, [
+    DateTime? generatedAt,
+  ]) {
     final footerTemplate = PdfPageTemplateElement(
       Rect.fromLTWH(0, 0, document.pageSettings.size.width, 35),
     );
@@ -433,7 +434,7 @@ class PdfReportExporter {
 
     final String dateStr = DateFormat(
       'yyyy-MM-dd HH:mm',
-    ).format(DateTime.now());
+    ).format(generatedAt ?? DateTime.now());
     footerTemplate.graphics.drawString(
       'Generated: $dateStr',
       PdfStandardFont(PdfFontFamily.helvetica, 8),
