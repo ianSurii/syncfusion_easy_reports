@@ -1,4 +1,3 @@
-import 'dart:io' show File;
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show ByteData, rootBundle;
@@ -12,6 +11,7 @@ import '../engine/report_options.dart';
 import '../engine/report_artifact.dart';
 import '../engine/report_column.dart';
 import '../models/report_models.dart';
+import '../utils/file_loader.dart';
 import '../utils/image_geometry.dart';
 import '../utils/text_utils.dart';
 import 'report_chart_data.dart';
@@ -1722,10 +1722,7 @@ class ExcelReportExporter {
           return data.buffer.asUint8List();
         } catch (_) {}
       } else if (!kIsWeb) {
-        try {
-          final file = File(branding.logoPath!);
-          if (await file.exists()) return await file.readAsBytes();
-        } catch (_) {}
+        return await loadFileBytes(branding.logoPath!);
       }
     }
     return null;

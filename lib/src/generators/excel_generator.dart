@@ -1,4 +1,3 @@
-import 'dart:io' show File;
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show ByteData, rootBundle;
@@ -8,6 +7,7 @@ import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 
 import '../downloader/downloader.dart';
 import '../models/report_models.dart';
+import '../utils/file_loader.dart';
 import '../utils/image_geometry.dart';
 import '../utils/text_utils.dart';
 
@@ -174,14 +174,7 @@ class ExcelReportGenerator {
           _log.warning('Assets logo read exception: $e');
         }
       } else if (!kIsWeb) {
-        try {
-          final file = File(branding.logoPath!);
-          if (await file.exists()) {
-            return await file.readAsBytes();
-          }
-        } catch (e) {
-          _log.warning('Local file logo read exception: $e');
-        }
+        return await loadFileBytes(branding.logoPath!);
       }
     }
     return null;

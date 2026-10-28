@@ -1,5 +1,5 @@
 import 'downloader_stub.dart'
-    if (dart.library.html) 'downloader_web.dart'
+    if (dart.library.js_interop) 'downloader_web.dart'
     if (dart.library.io) 'downloader_native.dart';
 
 /// Cross-platform helper to save or download bytes to the local file system.

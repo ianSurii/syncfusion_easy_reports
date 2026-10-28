@@ -1,4 +1,3 @@
-import 'dart:io' show File;
 import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect;
 import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
@@ -10,6 +9,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../downloader/downloader.dart';
 import '../models/report_models.dart';
+import '../utils/file_loader.dart';
 import '../utils/image_geometry.dart';
 
 /// Service to generate professional PDF reports from [ReportData].
@@ -782,12 +782,7 @@ class PdfReportGenerator {
           return data.buffer.asUint8List();
         } catch (_) {}
       } else if (!kIsWeb) {
-        try {
-          final file = File(branding.logoPath!);
-          if (await file.exists()) {
-            return await file.readAsBytes();
-          }
-        } catch (_) {}
+        return await loadFileBytes(branding.logoPath!);
       }
     }
     return null;

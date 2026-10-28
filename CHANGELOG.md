@@ -1,3 +1,9 @@
+## 0.0.5
+
+* Added full WebAssembly (WASM) and Flutter Web compatibility by removing direct `dart:io` imports in PDF and Excel exporters/generators.
+* Guarded native file loading behind cross-platform conditional imports (`file_loader`).
+* Updated web downloader conditional import to use modern `dart.library.js_interop`.
+
 ## 0.0.4
 
 * Upgraded dependencies: `syncfusion_flutter_pdf` and `syncfusion_flutter_xlsio` to `^35.1.42`, `excel_plus` to `^2.29.1`, and `file_picker` to `^13.3.0`.
