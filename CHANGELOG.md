@@ -1,3 +1,9 @@
+## 0.1.0
+
+* Automated publishing to pub.dev using GitHub Actions.
+* Added GitHub Actions CI/CD pipelines for automated testing and publishing.
+
+
 ## 0.0.5
 
 * Added full WebAssembly (WASM) and Flutter Web compatibility by removing direct `dart:io` imports in PDF and Excel exporters/generators.
